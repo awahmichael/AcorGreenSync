@@ -1,0 +1,92 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock keeping unit code"
+    },
+    "category": {
+      "type": "string",
+      "description": "Product category"
+    },
+    "price": {
+      "type": "number",
+      "description": "Sale price in GBP"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "kg",
+        "litre",
+        "unit",
+        "tonne",
+        "m2",
+        "m3",
+        "kWh"
+      ],
+      "default": "unit"
+    },
+    "emission_factor_defra": {
+      "type": "number",
+      "description": "kg CO2e per unit from DEFRA"
+    },
+    "emission_factor_climatiq": {
+      "type": "number",
+      "description": "kg CO2e per unit from Climatiq.io"
+    },
+    "emission_factor_source": {
+      "type": "string",
+      "enum": [
+        "DEFRA",
+        "Climatiq",
+        "Manual",
+        "Pending"
+      ],
+      "default": "Pending"
+    },
+    "commodity_code": {
+      "type": "string",
+      "description": "UK commodity code for DEFRA lookup"
+    },
+    "scope3_category": {
+      "type": "string",
+      "enum": [
+        "Category_1_Purchased_Goods",
+        "Category_11_Use_of_Sold_Products",
+        "Both"
+      ],
+      "default": "Both"
+    },
+    "emission_mapping_status": {
+      "type": "string",
+      "enum": [
+        "Mapped",
+        "Pending",
+        "Flagged"
+      ],
+      "default": "Pending"
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Store/location reference"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "price"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "SyncLog",
+  "type": "object",
+  "properties": {
+    "sync_type": {
+      "type": "string",
+      "enum": [
+        "transaction_sync",
+        "emission_factor_refresh",
+        "api_test"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "partial",
+        "failed"
+      ]
+    },
+    "records_synced": {
+      "type": "number",
+      "default": 0
+    },
+    "records_failed": {
+      "type": "number",
+      "default": 0
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    },
+    "synced_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "sync_type",
+    "status",
+    "synced_at"
+  ]
+}

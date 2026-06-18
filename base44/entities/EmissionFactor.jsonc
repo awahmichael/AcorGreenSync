@@ -1,0 +1,56 @@
+{
+  "name": "EmissionFactor",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Factor name/description"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "DEFRA",
+        "Climatiq"
+      ],
+      "default": "DEFRA"
+    },
+    "category": {
+      "type": "string",
+      "description": "Product/commodity category"
+    },
+    "commodity_code": {
+      "type": "string",
+      "description": "UK commodity code"
+    },
+    "kg_co2e_per_unit": {
+      "type": "number",
+      "description": "kg CO2e per unit"
+    },
+    "unit": {
+      "type": "string",
+      "default": "kg"
+    },
+    "scope3_category": {
+      "type": "string",
+      "description": "GHG Protocol Scope 3 category"
+    },
+    "year": {
+      "type": "number",
+      "description": "DEFRA publication year"
+    },
+    "version": {
+      "type": "string",
+      "description": "Dataset version"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "source",
+    "category",
+    "kg_co2e_per_unit"
+  ]
+}
