@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Settings as SettingsIcon, Leaf, RefreshCw, CheckCircle2, AlertCircle, Key, Database } from 'lucide-react';
+import { Leaf, RefreshCw, CheckCircle2, AlertCircle, Key, Database, Target, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+
+const BLANK_TARGET = { label: '', annual_kg_co2e: '', methodology: 'Board Approved', baseline_year: new Date().getFullYear(), reduction_pct: '', scope: 'Company-wide', notes: '', is_active: true };
 
 export default function Settings() {
   const [climatiqKey, setClimatiqKey] = useState('');
@@ -13,10 +16,36 @@ export default function Settings() {
   const [testing, setTesting] = useState(false);
   const [stores, setStores] = useState([]);
   const [newStore, setNewStore] = useState({ name: '', location: '', postcode: '', manager_name: '' });
+  const [targets, setTargets] = useState([]);
+  const [targetForm, setTargetForm] = useState(BLANK_TARGET);
+  const [editingTarget, setEditingTarget] = useState(null);
+  const [showTargetForm, setShowTargetForm] = useState(false);
 
   useEffect(() => {
-    base44.entities.Store.list().then(setStores);
+    Promise.all([base44.entities.Store.list(), base44.entities.CarbonTarget.list()]).then(([s, t]) => { setStores(s); setTargets(t); });
   }, []);
+
+  const saveTarget = async () => {
+    if (!targetForm.label || !targetForm.annual_kg_co2e) { toast.error('Label and annual target are required'); return; }
+    const data = { ...targetForm, annual_kg_co2e: parseFloat(targetForm.annual_kg_co2e), reduction_pct: targetForm.reduction_pct ? parseFloat(targetForm.reduction_pct) : null, baseline_year: parseInt(targetForm.baseline_year) };
+    if (editingTarget) {
+      await base44.entities.CarbonTarget.update(editingTarget.id, data);
+      toast.success('Target updated');
+    } else {
+      await base44.entities.CarbonTarget.create(data);
+      toast.success('Carbon target saved');
+    }
+    setShowTargetForm(false);
+    setEditingTarget(null);
+    setTargetForm(BLANK_TARGET);
+    base44.entities.CarbonTarget.list().then(setTargets);
+  };
+
+  const deleteTarget = async (id) => {
+    await base44.entities.CarbonTarget.delete(id);
+    setTargets(t => t.filter(x => x.id !== id));
+    toast.success('Target removed');
+  };
 
   const testConnection = async () => {
     setTesting(true);
@@ -53,7 +82,85 @@ export default function Settings() {
     <div className="p-6 max-w-3xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Configure API integrations, stores, and emission data sources</p>
+        <p className="text-muted-foreground text-sm mt-0.5">Configure carbon targets, API integrations, stores, and emission data sources</p>
+      </div>
+
+      {/* Carbon Targets */}
+      <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-green-50 rounded-lg flex items-center justify-center">
+              <Target className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">Carbon Reduction Targets</h2>
+              <p className="text-xs text-muted-foreground">Set your annual Scope 3 CO₂e budget — used on the Dashboard</p>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => { setEditingTarget(null); setTargetForm(BLANK_TARGET); setShowTargetForm(t => !t); }}>
+            {showTargetForm ? 'Cancel' : '+ Add Target'}
+          </Button>
+        </div>
+
+        {showTargetForm && (
+          <div className="bg-muted/30 rounded-xl p-4 space-y-3 border border-border">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-xs">Target Label *</Label>
+                <Input value={targetForm.label} onChange={e => setTargetForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. FY2026 Company Target" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Annual Budget (kg CO₂e) *</Label>
+                <Input type="number" value={targetForm.annual_kg_co2e} onChange={e => setTargetForm(f => ({ ...f, annual_kg_co2e: e.target.value }))} placeholder="e.g. 50000" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Methodology</Label>
+                <Select value={targetForm.methodology} onValueChange={v => setTargetForm(f => ({ ...f, methodology: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['SBTi', 'UK Net Zero Strategy', 'SECR Baseline', 'Board Approved', 'Custom'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Baseline Year</Label>
+                <Input type="number" value={targetForm.baseline_year} onChange={e => setTargetForm(f => ({ ...f, baseline_year: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Reduction Target (%)</Label>
+                <Input type="number" value={targetForm.reduction_pct} onChange={e => setTargetForm(f => ({ ...f, reduction_pct: e.target.value }))} placeholder="e.g. 30" />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-xs">Notes</Label>
+                <Input value={targetForm.notes} onChange={e => setTargetForm(f => ({ ...f, notes: e.target.value }))} placeholder="e.g. Aligned to SBTi 1.5°C pathway" />
+              </div>
+            </div>
+            <Button onClick={saveTarget} size="sm">{editingTarget ? 'Update Target' : 'Save Target'}</Button>
+          </div>
+        )}
+
+        {targets.length > 0 ? (
+          <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
+            {targets.map(t => (
+              <div key={t.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <div className="text-sm font-medium text-foreground">{t.label}</div>
+                  <div className="text-xs text-muted-foreground">{t.methodology} · {t.annual_kg_co2e?.toLocaleString()} kg CO₂e / yr{t.reduction_pct ? ` · ${t.reduction_pct}% reduction` : ''}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.is_active ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
+                  <button onClick={() => { setEditingTarget(t); setTargetForm({ ...t }); setShowTargetForm(true); }} className="text-muted-foreground hover:text-primary"><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => deleteTarget(t.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
+            No carbon target set yet — the Dashboard will show a placeholder. Add one above to track real progress.
+          </div>
+        )}
       </div>
 
       {/* DEFRA Config */}

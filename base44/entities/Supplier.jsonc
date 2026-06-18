@@ -1,0 +1,56 @@
+{
+  "name": "Supplier",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "postcode": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string",
+      "default": "United Kingdom"
+    },
+    "category": {
+      "type": "string",
+      "description": "Product categories supplied"
+    },
+    "declared_scope3_kg_co2e": {
+      "type": "number",
+      "description": "Supplier's own declared annual Scope 3 kg CO2e"
+    },
+    "carbon_disclosure_status": {
+      "type": "string",
+      "enum": [
+        "Disclosed",
+        "Partial",
+        "Not Disclosed",
+        "Requested"
+      ],
+      "default": "Not Disclosed"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

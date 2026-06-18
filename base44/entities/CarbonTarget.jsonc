@@ -1,0 +1,57 @@
+{
+  "name": "CarbonTarget",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "description": "e.g. 'FY2026 Company Target'"
+    },
+    "annual_kg_co2e": {
+      "type": "number",
+      "description": "Annual Scope 3 budget in kg CO2e"
+    },
+    "methodology": {
+      "type": "string",
+      "enum": [
+        "SBTi",
+        "UK Net Zero Strategy",
+        "SECR Baseline",
+        "Board Approved",
+        "Custom"
+      ],
+      "default": "Board Approved"
+    },
+    "baseline_year": {
+      "type": "number",
+      "description": "Year the target is based on"
+    },
+    "reduction_pct": {
+      "type": "number",
+      "description": "% reduction vs baseline year"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "Company-wide",
+        "Per Store"
+      ],
+      "default": "Company-wide"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Only set if scope is Per Store"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "label",
+    "annual_kg_co2e",
+    "methodology"
+  ]
+}

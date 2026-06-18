@@ -2,17 +2,36 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
-  Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight
+  Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight,
+  Boxes, Truck, Clock
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/pos', label: 'POS Terminal', icon: ShoppingCart },
-  { path: '/products', label: 'Products', icon: Package },
-  { path: '/reports', label: 'Reports', icon: BarChart3 },
-  { path: '/settings', label: 'Settings', icon: Settings },
+const navGroups = [
+  {
+    label: 'Operations',
+    items: [
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/pos', label: 'POS Terminal', icon: ShoppingCart },
+      { path: '/shifts', label: 'Shifts', icon: Clock },
+    ]
+  },
+  {
+    label: 'Catalogue',
+    items: [
+      { path: '/products', label: 'Products', icon: Package },
+      { path: '/inventory', label: 'Inventory', icon: Boxes },
+      { path: '/suppliers', label: 'Suppliers', icon: Truck },
+    ]
+  },
+  {
+    label: 'Reporting',
+    items: [
+      { path: '/reports', label: 'Reports', icon: BarChart3 },
+      { path: '/settings', label: 'Settings', icon: Settings },
+    ]
+  },
 ];
 
 export default function Layout() {
@@ -51,27 +70,34 @@ export default function Layout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(({ path, label, icon: Icon }) => {
-            const active = location.pathname === path;
-            return (
-              <Link
-                key={path}
-                to={path}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                  active
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-[hsl(210,20%,70%)] hover:bg-[hsl(220,15%,18%)] hover:text-white"
-                )}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {label}
-                {active && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          {navGroups.map(({ label, items }) => (
+            <div key={label}>
+              <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[hsl(210,20%,45%)]">{label}</div>
+              <div className="space-y-0.5">
+                {items.map(({ path, label: itemLabel, icon: Icon }) => {
+                  const active = location.pathname === path;
+                  return (
+                    <Link
+                      key={path}
+                      to={path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                        active
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-[hsl(210,20%,70%)] hover:bg-[hsl(220,15%,18%)] hover:text-white"
+                      )}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {itemLabel}
+                      {active && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Connectivity status */}

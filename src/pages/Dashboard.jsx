@@ -11,6 +11,7 @@ import SyncStatusBanner from '@/components/dashboard/SyncStatusBanner';
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [products, setProducts] = useState([]);
+  const [carbonTargets, setCarbonTargets] = useState([]);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
   const { queue } = useOfflineQueue();
@@ -19,9 +20,11 @@ export default function Dashboard() {
     Promise.all([
       base44.entities.Transaction.list('-transaction_date', 100),
       base44.entities.Product.list(),
-    ]).then(([txns, prods]) => {
+      base44.entities.CarbonTarget.filter({ is_active: true }),
+    ]).then(([txns, prods, targets]) => {
       setTransactions(txns);
       setProducts(prods);
+      setCarbonTargets(targets);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -37,8 +40,10 @@ export default function Dashboard() {
   // Category breakdown
   const categoryData = getCategoryBreakdown(transactions);
 
-  const NET_ZERO_TARGET = 1000; // kg CO2e target
-  const progressPct = Math.min((totalCO2e / NET_ZERO_TARGET) * 100, 100);
+  // Live carbon target — use active company-wide target, fallback to null
+  const activeTarget = carbonTargets.find(t => t.scope === 'Company-wide') || carbonTargets[0] || null;
+  const NET_ZERO_TARGET = activeTarget?.annual_kg_co2e || null;
+  const progressPct = NET_ZERO_TARGET ? Math.min((totalCO2e / NET_ZERO_TARGET) * 100, 100) : 0;
 
   if (loading) {
     return (
@@ -98,7 +103,14 @@ export default function Dashboard() {
       </div>
 
       {/* Net Zero Progress */}
-      <NetZeroProgress current={totalCO2e} target={NET_ZERO_TARGET} progressPct={progressPct} />
+      {NET_ZERO_TARGET ? (
+        <NetZeroProgress current={totalCO2e} target={NET_ZERO_TARGET} progressPct={progressPct} />
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3 text-sm">
+          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <span className="text-amber-800">No carbon target set. <a href="/settings" className="font-semibold underline">Go to Settings</a> to add your annual Scope 3 budget.</span>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

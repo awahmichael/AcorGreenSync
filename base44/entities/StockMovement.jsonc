@@ -1,0 +1,56 @@
+{
+  "name": "StockMovement",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "movement_type": {
+      "type": "string",
+      "enum": [
+        "purchase_in",
+        "sale_out",
+        "adjustment",
+        "transfer_in",
+        "transfer_out",
+        "wastage"
+      ],
+      "default": "adjustment"
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "reference": {
+      "type": "string",
+      "description": "PO number, delivery note, etc."
+    },
+    "notes": {
+      "type": "string"
+    },
+    "movement_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "product_id",
+    "movement_type",
+    "quantity",
+    "movement_date"
+  ]
+}

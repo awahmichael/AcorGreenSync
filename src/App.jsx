@@ -8,13 +8,18 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { Toaster as Sonner } from 'sonner';
 
-// Pages
+// Layout
 import Layout from '@/components/Layout';
+
+// Pages
 import Dashboard from '@/pages/Dashboard';
 import POS from '@/pages/POS';
 import Products from '@/pages/Products';
 import Reports from '@/pages/Reports';
 import Settings from '@/pages/Settings';
+import Inventory from '@/pages/Inventory';
+import Suppliers from '@/pages/Suppliers';
+import Shifts from '@/pages/Shifts';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -31,12 +36,8 @@ const AuthenticatedApp = () => {
   }
 
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
   return (
@@ -45,6 +46,9 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/pos" element={<POS />} />
         <Route path="/products" element={<Products />} />
+        <Route path="/inventory" element={<Inventory />} />
+        <Route path="/suppliers" element={<Suppliers />} />
+        <Route path="/shifts" element={<Shifts />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

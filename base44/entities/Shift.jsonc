@@ -1,0 +1,63 @@
+{
+  "name": "Shift",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "cashier_id": {
+      "type": "string"
+    },
+    "cashier_name": {
+      "type": "string"
+    },
+    "shift_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "shift_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opening_float": {
+      "type": "number",
+      "default": 0
+    },
+    "closing_cash": {
+      "type": "number"
+    },
+    "total_transactions": {
+      "type": "number",
+      "default": 0
+    },
+    "total_revenue": {
+      "type": "number",
+      "default": 0
+    },
+    "total_kg_co2e": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed",
+        "reconciled"
+      ],
+      "default": "open"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "store_name",
+    "cashier_name",
+    "shift_start",
+    "status"
+  ]
+}
