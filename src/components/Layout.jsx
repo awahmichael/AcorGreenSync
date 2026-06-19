@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
@@ -6,6 +6,7 @@ import {
   Boxes, Truck, Clock
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
 
 const navGroups = [
@@ -38,6 +39,14 @@ export default function Layout() {
   const location = useLocation();
   const isOnline = useOnlineStatus();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { queue, syncQueue } = useOfflineQueue();
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && queue.length > 0) {
+      syncQueue();
+    }
+  }, [isOnline]);
 
   return (
     <div className="flex h-screen bg-muted overflow-hidden">
