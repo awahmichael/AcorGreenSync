@@ -28,6 +28,22 @@
       "type": "string",
       "description": "Product categories supplied"
     },
+    "distance_km": {
+      "type": "number",
+      "description": "Distance from store to supplier in km (for transport emission calc)"
+    },
+    "transport_mode": {
+      "type": "string",
+      "enum": [
+        "road_hgv",
+        "road_lgv",
+        "rail",
+        "sea",
+        "air"
+      ],
+      "default": "road_hgv",
+      "description": "Primary transport mode for deliveries"
+    },
     "declared_scope3_kg_co2e": {
       "type": "number",
       "description": "Supplier's own declared annual Scope 3 kg CO2e"

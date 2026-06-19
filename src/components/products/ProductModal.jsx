@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Leaf } from 'lucide-react';
+import { Leaf, CheckCircle2, AlertCircle, Search, Loader2 } from 'lucide-react';
+import { useRmlEngine } from '@/hooks/useRmlEngine';
+import RmlMatchBadge from '@/components/products/RmlMatchBadge';
 
 const CATEGORIES = ['Food & Beverages', 'Clothing & Textiles', 'Electronics', 'Furniture', 'Household Goods', 'Health & Beauty', 'Sports & Leisure', 'Books & Stationery', 'Automotive', 'Other'];
 const UNITS = ['unit', 'kg', 'litre', 'tonne', 'm2', 'm3', 'kWh'];
@@ -21,15 +23,44 @@ export default function ProductModal({ product, onClose, onSaved }) {
     unit: product?.unit || 'unit',
     emission_factor_defra: product?.emission_factor_defra || '',
     emission_factor_climatiq: product?.emission_factor_climatiq || '',
-    emission_factor_source: product?.emission_factor_source || 'DEFRA',
+    emission_factor_source: product?.emission_factor_source || 'Pending',
     commodity_code: product?.commodity_code || '',
     scope3_category: product?.scope3_category || 'Both',
     stock_quantity: product?.stock_quantity || 0,
+    supplier_id: product?.supplier_id || '',
     is_active: product?.is_active !== false,
   });
   const [saving, setSaving] = useState(false);
+  const [rmlResult, setRmlResult] = useState(null); // { factor, matchType } or null
+  const [suppliers, setSuppliers] = useState([]);
+
+  const { resolve, factors, loading: rmlLoading } = useRmlEngine();
+
+  // Load suppliers for dropdown
+  useEffect(() => {
+    base44.entities.Supplier.filter({ is_active: true }).then(setSuppliers);
+  }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // RML auto-resolve when commodity_code or category changes
+  useEffect(() => {
+    if (rmlLoading) return;
+    const result = resolve(form.commodity_code, form.category);
+    setRmlResult(result);
+  }, [form.commodity_code, form.category, resolve, rmlLoading]);
+
+  const applyRmlMatch = () => {
+    if (!rmlResult) return;
+    const f = rmlResult.factor;
+    setForm(prev => ({
+      ...prev,
+      emission_factor_defra: f.kg_co2e_per_unit,
+      emission_factor_source: 'DEFRA',
+      unit: f.unit || prev.unit,
+    }));
+    toast.success(`DEFRA factor applied: ${f.kg_co2e_per_unit} kg CO₂e/${f.unit || 'unit'}`);
+  };
 
   const handleSave = async () => {
     if (!form.name || !form.category || !form.price) {
@@ -45,6 +76,9 @@ export default function ProductModal({ product, onClose, onSaved }) {
       emission_factor_climatiq: parseFloat(form.emission_factor_climatiq) || null,
       stock_quantity: parseInt(form.stock_quantity) || 0,
       emission_mapping_status: hasEmission ? 'Mapped' : 'Pending',
+      defra_factor_id: rmlResult?.factor?.id || product?.defra_factor_id || null,
+      defra_factor_version: rmlResult?.factor?.version || product?.defra_factor_version || null,
+      supplier_id: form.supplier_id || null,
     };
 
     if (product?.id) {
@@ -98,11 +132,83 @@ export default function ProductModal({ product, onClose, onSaved }) {
             </div>
           </div>
 
+          {/* Supplier link */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Supplier (for transport emissions)</Label>
+            <Select value={form.supplier_id} onValueChange={v => set('supplier_id', v)}>
+              <SelectTrigger><SelectValue placeholder="Select supplier..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>None</SelectItem>
+                {suppliers.map(s => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name} {s.distance_km ? `(${s.distance_km} km)` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* RML Emission Factor Mapping */}
           <div className="bg-green-50 border border-green-100 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-              <Leaf className="w-4 h-4" />
-              Emission Factor Mapping
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <Leaf className="w-4 h-4" />
+                RML Emission Factor Mapping
+              </div>
+              {rmlLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
             </div>
+
+            {/* Commodity code with auto-lookup */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">DEFRA Commodity Code (RML Key)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.commodity_code}
+                  onChange={e => set('commodity_code', e.target.value)}
+                  placeholder="e.g. DAIRY-LIQ-01"
+                  className="flex-1"
+                />
+                {rmlResult && (
+                  <Button type="button" size="sm" variant="outline" onClick={applyRmlMatch} className="shrink-0 text-xs border-green-300 text-green-700 hover:bg-green-100">
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                    Apply
+                  </Button>
+                )}
+              </div>
+              <RmlMatchBadge result={rmlResult} loading={rmlLoading} />
+            </div>
+
+            {/* Browse DEFRA factors dropdown */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Or browse DEFRA factors</Label>
+              <Select
+                value=""
+                onValueChange={(factorId) => {
+                  const f = factors.find(ef => ef.id === factorId);
+                  if (f) {
+                    setForm(prev => ({
+                      ...prev,
+                      commodity_code: f.commodity_code || prev.commodity_code,
+                      emission_factor_defra: f.kg_co2e_per_unit,
+                      emission_factor_source: 'DEFRA',
+                      unit: f.unit || prev.unit,
+                    }));
+                    setRmlResult({ factor: f, matchType: 'manual_select' });
+                    toast.success(`Applied: ${f.name}`);
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Browse DEFRA factors..." /></SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {factors.map(f => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name} — {f.kg_co2e_per_unit} kg CO₂e/{f.unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">DEFRA Factor (kg CO₂e/unit)</Label>
@@ -122,20 +228,16 @@ export default function ProductModal({ product, onClose, onSaved }) {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">UK Commodity Code</Label>
-                <Input value={form.commodity_code} onChange={e => set('commodity_code', e.target.value)} placeholder="e.g. 6205" />
+                <Label className="text-xs">Scope 3 Category</Label>
+                <Select value={form.scope3_category} onValueChange={v => set('scope3_category', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Category_1_Purchased_Goods">Cat 1 — Purchased Goods</SelectItem>
+                    <SelectItem value="Category_11_Use_of_Sold_Products">Cat 11 — Sold Products</SelectItem>
+                    <SelectItem value="Both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Scope 3 Category</Label>
-              <Select value={form.scope3_category} onValueChange={v => set('scope3_category', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Category_1_Purchased_Goods">Category 1 — Purchased Goods (Upstream)</SelectItem>
-                  <SelectItem value="Category_11_Use_of_Sold_Products">Category 11 — Use of Sold Products (Downstream)</SelectItem>
-                  <SelectItem value="Both">Both</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

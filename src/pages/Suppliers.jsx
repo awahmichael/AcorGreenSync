@@ -15,7 +15,15 @@ const DISCLOSURE_CONFIG = {
   'Not Disclosed': { icon: XCircle, color: 'text-red-600 bg-red-50', label: 'Not Disclosed' },
 };
 
-const BLANK = { name: '', contact_name: '', email: '', phone: '', address: '', postcode: '', country: 'United Kingdom', category: '', declared_scope3_kg_co2e: '', carbon_disclosure_status: 'Not Disclosed', notes: '' };
+const TRANSPORT_MODES = [
+  { value: 'road_hgv', label: 'Road — HGV' },
+  { value: 'road_lgv', label: 'Road — LGV/Van' },
+  { value: 'rail', label: 'Rail Freight' },
+  { value: 'sea', label: 'Sea Freight' },
+  { value: 'air', label: 'Air Freight' },
+];
+
+const BLANK = { name: '', contact_name: '', email: '', phone: '', address: '', postcode: '', country: 'United Kingdom', category: '', distance_km: '', transport_mode: 'road_hgv', declared_scope3_kg_co2e: '', carbon_disclosure_status: 'Not Disclosed', notes: '' };
 
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
@@ -30,11 +38,11 @@ export default function Suppliers() {
   }, []);
 
   const openAdd = () => { setEditing(null); setForm(BLANK); setShowModal(true); };
-  const openEdit = (s) => { setEditing(s); setForm({ ...s, declared_scope3_kg_co2e: s.declared_scope3_kg_co2e || '' }); setShowModal(true); };
+  const openEdit = (s) => { setEditing(s); setForm({ ...s, declared_scope3_kg_co2e: s.declared_scope3_kg_co2e || '', distance_km: s.distance_km || '', transport_mode: s.transport_mode || 'road_hgv' }); setShowModal(true); };
 
   const save = async () => {
     if (!form.name) { toast.error('Supplier name required'); return; }
-    const data = { ...form, declared_scope3_kg_co2e: form.declared_scope3_kg_co2e ? parseFloat(form.declared_scope3_kg_co2e) : null, is_active: true };
+    const data = { ...form, declared_scope3_kg_co2e: form.declared_scope3_kg_co2e ? parseFloat(form.declared_scope3_kg_co2e) : null, distance_km: form.distance_km ? parseFloat(form.distance_km) : null, is_active: true };
     if (editing) {
       await base44.entities.Supplier.update(editing.id, data);
       toast.success('Supplier updated');
@@ -96,6 +104,7 @@ export default function Suppliers() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Supplier</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Category</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Contact</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Distance</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Declared CO₂e</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Disclosure</th>
                 <th className="px-4 py-3"></th>
@@ -115,6 +124,9 @@ export default function Suppliers() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{s.category || '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground">{s.contact_name || '—'}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">
+                      {s.distance_km ? `${s.distance_km} km` : '—'}
+                    </td>
                     <td className="px-4 py-3 text-right font-medium">
                       {s.declared_scope3_kg_co2e ? `${s.declared_scope3_kg_co2e.toFixed(0)} kg` : '—'}
                     </td>
@@ -165,6 +177,19 @@ export default function Suppliers() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 border-t border-border pt-4">
+              <div className="space-y-1.5">
+                <Label>Distance to Store (km)</Label>
+                <Input type="number" value={form.distance_km} onChange={e => setForm(f => ({ ...f, distance_km: e.target.value }))} placeholder="e.g. 50" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Transport Mode</Label>
+                <Select value={form.transport_mode} onValueChange={v => setForm(f => ({ ...f, transport_mode: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TRANSPORT_MODES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5">
                 <Label>Carbon Disclosure Status</Label>
                 <Select value={form.carbon_disclosure_status} onValueChange={v => setForm(f => ({ ...f, carbon_disclosure_status: v }))}>

@@ -51,7 +51,19 @@
     },
     "commodity_code": {
       "type": "string",
-      "description": "UK commodity code for DEFRA lookup"
+      "description": "UK commodity code for DEFRA lookup (RML key)"
+    },
+    "defra_factor_id": {
+      "type": "string",
+      "description": "ID of matched EmissionFactor record"
+    },
+    "defra_factor_version": {
+      "type": "string",
+      "description": "DEFRA dataset version used for this mapping"
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Linked supplier for transport emission calc"
     },
     "scope3_category": {
       "type": "string",
