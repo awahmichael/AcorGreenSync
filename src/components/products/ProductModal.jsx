@@ -18,6 +18,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: product?.name || '',
     sku: product?.sku || '',
+    upc: product?.upc || '',
     category: product?.category || '',
     price: product?.price || '',
     unit: product?.unit || 'unit',
@@ -107,6 +108,10 @@ export default function ProductModal({ product, onClose, onSaved }) {
             <div className="space-y-1.5">
               <Label>SKU</Label>
               <Input value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="SKU-001" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>UPC / EAN Barcode</Label>
+              <Input value={form.upc} onChange={e => set('upc', e.target.value)} placeholder="e.g. 5000112637922" className="font-mono" />
             </div>
             <div className="space-y-1.5">
               <Label>Price (£) *</Label>

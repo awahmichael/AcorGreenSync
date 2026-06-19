@@ -7,30 +7,32 @@ import {
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
 
+// roles: undefined = all, 'admin' = admin only, 'cashier' = cashier can access
 const navGroups = [
   {
     label: 'Operations',
     items: [
-      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/pos', label: 'POS Terminal', icon: ShoppingCart },
-      { path: '/shifts', label: 'Shifts', icon: Clock },
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'user'] },
+      { path: '/pos', label: 'POS Terminal', icon: ShoppingCart, roles: ['admin', 'manager', 'user'] },
+      { path: '/shifts', label: 'Shifts', icon: Clock, roles: ['admin', 'manager', 'user'] },
     ]
   },
   {
     label: 'Catalogue',
     items: [
-      { path: '/products', label: 'Products', icon: Package },
-      { path: '/inventory', label: 'Inventory', icon: Boxes },
-      { path: '/suppliers', label: 'Suppliers', icon: Truck },
+      { path: '/products', label: 'Products', icon: Package, roles: ['admin', 'manager'] },
+      { path: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'manager'] },
+      { path: '/suppliers', label: 'Suppliers', icon: Truck, roles: ['admin', 'manager'] },
     ]
   },
   {
     label: 'Reporting',
     items: [
-      { path: '/reports', label: 'Reports', icon: BarChart3 },
-      { path: '/settings', label: 'Settings', icon: Settings },
+      { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'] },
+      { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]
   },
 ];
@@ -40,6 +42,10 @@ export default function Layout() {
   const isOnline = useOnlineStatus();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { queue, syncQueue } = useOfflineQueue();
+  const { user } = useAuth();
+  const userRole = user?.role || 'user';
+
+  const canAccess = (roles) => !roles || roles.includes(userRole);
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -84,7 +90,7 @@ export default function Layout() {
             <div key={label}>
               <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[hsl(210,20%,45%)]">{label}</div>
               <div className="space-y-0.5">
-                {items.map(({ path, label: itemLabel, icon: Icon }) => {
+                {items.filter(item => canAccess(item.roles)).map(({ path, label: itemLabel, icon: Icon }) => {
                   const active = location.pathname === path;
                   return (
                     <Link
@@ -135,6 +141,19 @@ export default function Layout() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
+          {user && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="hidden sm:inline font-medium text-foreground">{user.full_name || user.email}</span>
+              <span className={cn(
+                "px-2 py-0.5 rounded-full font-medium capitalize",
+                userRole === 'admin' ? "bg-purple-100 text-purple-700" :
+                userRole === 'manager' ? "bg-blue-100 text-blue-700" :
+                "bg-gray-100 text-gray-600"
+              )}>
+                {userRole}
+              </span>
+            </div>
+          )}
           <div className={cn(
             "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full",
             isOnline ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"

@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { toast } from 'sonner';
 import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
+import BarcodeInput from '@/components/pos/BarcodeInput';
 
 export default function POS() {
   const [products, setProducts] = useState([]);
@@ -15,6 +17,7 @@ export default function POS() {
   const [search, setSearch] = useState('');
   const [showPayment, setShowPayment] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastScanned, setLastScanned] = useState(null);
   const isOnline = useOnlineStatus();
   const { addToQueue } = useOfflineQueue();
 
@@ -24,7 +27,9 @@ export default function POS() {
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.category || '').toLowerCase().includes(search.toLowerCase())
+    (p.category || '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.upc || '').includes(search) ||
+    (p.sku || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const addToCart = (product) => {
@@ -47,6 +52,22 @@ export default function POS() {
       }];
     });
   };
+
+  // Barcode scan handler — matches UPC or SKU
+  const handleScan = (code) => {
+    const match = products.find(p => p.upc === code || p.sku === code);
+    if (match) {
+      addToCart(match);
+      setLastScanned({ found: true, name: match.name, code });
+      toast.success(`Added: ${match.name}`, { duration: 1500 });
+    } else {
+      setLastScanned({ found: false, code });
+      toast.error(`No product found for barcode: ${code}`, { duration: 2000 });
+    }
+  };
+
+  // Global keyboard listener for hardware scanners
+  useBarcodeScanner({ onScan: handleScan, enabled: !showPayment });
 
   const updateQty = (productId, delta) => {
     setCart(prev => prev
@@ -83,6 +104,24 @@ export default function POS() {
 
     if (isOnline) {
       await base44.entities.Transaction.create(transaction);
+
+      // Deduct stock for each cart item
+      await Promise.allSettled(
+        cart.map(item => {
+          const product = products.find(p => p.id === item.product_id);
+          if (!product) return Promise.resolve();
+          const newQty = Math.max(0, (product.stock_quantity || 0) - item.quantity);
+          return base44.entities.Product.update(item.product_id, { stock_quantity: newQty });
+        })
+      );
+
+      // Update local products state to reflect new stock
+      setProducts(prev => prev.map(p => {
+        const cartItem = cart.find(i => i.product_id === p.id);
+        if (!cartItem) return p;
+        return { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - cartItem.quantity) };
+      }));
+
       toast.success('Transaction complete!');
     } else {
       addToQueue(transaction);
@@ -97,22 +136,30 @@ export default function POS() {
     <div className="h-full flex flex-col lg:flex-row">
       {/* Product grid */}
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          {!isOnline && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-              <WifiOff className="w-3.5 h-3.5" />
-              Offline
+        {/* Scanner + search bar */}
+        <div className="space-y-2 mb-4">
+          <BarcodeInput
+            onScan={handleScan}
+            lastScanned={lastScanned}
+            onClear={() => setLastScanned(null)}
+          />
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, category, SKU..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          )}
+            {!isOnline && (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                <WifiOff className="w-3.5 h-3.5" />
+                Offline
+              </div>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -130,7 +177,10 @@ export default function POS() {
                 className="bg-white border border-border rounded-xl p-4 text-left hover:border-primary hover:shadow-sm transition-all active:scale-95 group"
               >
                 <div className="text-sm font-semibold text-foreground line-clamp-2 mb-1">{product.name}</div>
-                <div className="text-xs text-muted-foreground mb-2">{product.category}</div>
+                <div className="text-xs text-muted-foreground mb-1">{product.category}</div>
+                {product.upc && (
+                  <div className="text-xs text-muted-foreground font-mono mb-1 truncate">{product.upc}</div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-foreground">£{product.price?.toFixed(2)}</span>
                   <div className="flex items-center gap-1 text-xs text-primary">
@@ -138,6 +188,12 @@ export default function POS() {
                     <span>{(product.emission_factor_defra || 0).toFixed(2)}</span>
                   </div>
                 </div>
+                {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
+                  <div className="mt-1 text-xs text-amber-600">⚠ Low stock ({product.stock_quantity})</div>
+                )}
+                {product.stock_quantity === 0 && (
+                  <div className="mt-1 text-xs text-red-500">✗ Out of stock</div>
+                )}
                 {product.emission_mapping_status === 'Pending' && (
                   <div className="mt-1 text-xs text-amber-600">⚠ No emission factor</div>
                 )}
@@ -179,12 +235,11 @@ export default function POS() {
           {cart.length === 0 && (
             <div className="p-8 text-center text-muted-foreground text-sm">
               <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              Add products to the cart
+              Scan a barcode or tap a product
             </div>
           )}
         </div>
 
-        {/* Cart summary */}
         {cart.length > 0 && (
           <div className="px-5 py-4 border-t border-border space-y-3">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
