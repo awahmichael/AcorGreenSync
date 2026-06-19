@@ -1,0 +1,52 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete",
+        "period_lock",
+        "emission_resolve"
+      ],
+      "description": "Type of action performed"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity that was changed (Transaction, Product, etc.)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the affected record"
+    },
+    "entity_ref": {
+      "type": "string",
+      "description": "Human-readable reference (e.g. transaction_ref)"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "changes": {
+      "type": "string",
+      "description": "JSON string of changed fields / old\u2192new values"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "performed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "action",
+    "entity_type",
+    "entity_id",
+    "performed_at"
+  ]
+}

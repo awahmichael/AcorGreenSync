@@ -16,6 +16,7 @@ import Dashboard from '@/pages/Dashboard';
 import POS from '@/pages/POS';
 import Products from '@/pages/Products';
 import Reports from '@/pages/Reports';
+import Compliance from '@/pages/Compliance';
 import Settings from '@/pages/Settings';
 import Inventory from '@/pages/Inventory';
 import Suppliers from '@/pages/Suppliers';
@@ -50,6 +51,7 @@ const AuthenticatedApp = () => {
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/shifts" element={<Shifts />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

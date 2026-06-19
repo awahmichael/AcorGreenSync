@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
   Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight,
-  Boxes, Truck, Clock
+  Boxes, Truck, Clock, ShieldCheck
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -32,6 +32,7 @@ const navGroups = [
     label: 'Reporting',
     items: [
       { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'] },
+      { path: '/compliance', label: 'Compliance', icon: ShieldCheck, roles: ['admin', 'manager'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]
   },

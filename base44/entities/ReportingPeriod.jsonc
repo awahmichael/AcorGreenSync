@@ -1,0 +1,53 @@
+{
+  "name": "ReportingPeriod",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "description": "e.g. FY2025 Q1"
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "locked"
+      ],
+      "default": "open"
+    },
+    "locked_by": {
+      "type": "string",
+      "description": "User name who locked the period"
+    },
+    "locked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_kg_co2e": {
+      "type": "number",
+      "description": "Snapshot of total Scope 3 at time of lock"
+    },
+    "total_revenue": {
+      "type": "number"
+    },
+    "total_transactions": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "label",
+    "period_start",
+    "period_end",
+    "status"
+  ]
+}
