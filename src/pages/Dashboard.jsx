@@ -22,7 +22,7 @@ export default function Dashboard() {
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
-  const { queue, syncing, syncQueue } = useOfflineQueue();
+  const { queue, syncing, syncQueue, clearQueue } = useOfflineQueue();
 
   // Trigger sync when dashboard loads and we're online with a queue
   useEffect(() => {
@@ -97,7 +97,13 @@ export default function Dashboard() {
       </div>
 
       {/* Sync banner (always visible) */}
-      <SyncStatusBanner queueCount={queue.length} isOnline={isOnline} syncing={syncing} />
+      <SyncStatusBanner
+        queueCount={queue.length}
+        isOnline={isOnline}
+        syncing={syncing}
+        onRetry={syncQueue}
+        onClear={clearQueue}
+      />
 
       {/* BUSINESS TAB */}
       {tab === 'business' && (

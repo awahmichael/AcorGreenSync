@@ -3,50 +3,58 @@ import { base44 } from '@/api/base44Client';
 
 const QUEUE_KEY = 'acorcloud_offline_queue';
 
+function loadFromStorage() {
+  try {
+    const stored = localStorage.getItem(QUEUE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    localStorage.removeItem(QUEUE_KEY);
+    return [];
+  }
+}
+
+function saveToStorage(items) {
+  if (items.length === 0) {
+    localStorage.removeItem(QUEUE_KEY);
+  } else {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
+  }
+}
+
 export function useOfflineQueue() {
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState(() => loadFromStorage());
   const [syncing, setSyncing] = useState(false);
   const syncInProgress = useRef(false);
 
+  // Re-read from storage on mount to stay in sync
   useEffect(() => {
-    const stored = localStorage.getItem(QUEUE_KEY);
-    if (stored) {
-      try { setQueue(JSON.parse(stored)); } catch { localStorage.removeItem(QUEUE_KEY); }
-    }
+    const current = loadFromStorage();
+    setQueue(current);
   }, []);
-
-  const saveQueue = (updated) => {
-    setQueue(updated);
-    if (updated.length === 0) {
-      localStorage.removeItem(QUEUE_KEY);
-    } else {
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(updated));
-    }
-  };
 
   const addToQueue = useCallback((transaction) => {
     setQueue(prev => {
+      // Avoid duplicate refs in queue
+      if (prev.find(t => t.transaction_ref === transaction.transaction_ref)) return prev;
       const updated = [...prev, { ...transaction, queued_at: new Date().toISOString() }];
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(updated));
+      saveToStorage(updated);
       return updated;
     });
   }, []);
 
-  const removeFromQueue = useCallback((transactionRef) => {
-    setQueue(prev => {
-      const updated = prev.filter(t => t.transaction_ref !== transactionRef);
-      if (updated.length === 0) localStorage.removeItem(QUEUE_KEY);
-      else localStorage.setItem(QUEUE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  const clearQueue = useCallback(() => {
+    saveToStorage([]);
+    setQueue([]);
   }, []);
 
-  // Actual sync: push each queued transaction to the API
+  // Sync: check if each transaction already exists, skip if so, else create
   const syncQueue = useCallback(async () => {
-    const stored = localStorage.getItem(QUEUE_KEY);
-    if (!stored) return;
-    const current = JSON.parse(stored);
-    if (!current.length || syncInProgress.current) return;
+    if (syncInProgress.current) return;
+    const current = loadFromStorage();
+    if (!current.length) {
+      setQueue([]);
+      return;
+    }
 
     syncInProgress.current = true;
     setSyncing(true);
@@ -54,21 +62,24 @@ export function useOfflineQueue() {
     const remaining = [];
     for (const txn of current) {
       try {
+        // Check if this transaction_ref already exists in the DB
+        const existing = await base44.entities.Transaction.filter({ transaction_ref: txn.transaction_ref });
+        if (existing && existing.length > 0) {
+          // Already in DB — just remove from queue, no need to create
+          continue;
+        }
         const { queued_at, ...payload } = txn;
         await base44.entities.Transaction.create({ ...payload, sync_status: 'synced' });
       } catch {
-        remaining.push(txn); // keep failed ones for retry
+        remaining.push(txn);
       }
     }
 
-    saveQueue(remaining);
+    saveToStorage(remaining);
+    setQueue(remaining);
     setSyncing(false);
     syncInProgress.current = false;
   }, []);
 
-  const clearQueue = useCallback(() => {
-    saveQueue([]);
-  }, []);
-
-  return { queue, syncing, addToQueue, removeFromQueue, clearQueue, syncQueue };
+  return { queue, syncing, addToQueue, clearQueue, syncQueue };
 }
