@@ -76,3 +76,22 @@
   transition-duration: 150ms;
   transition-timing-function: ease;
 }
+
+/* Print: only show the receipt */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible;
+  }
+  .receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+}

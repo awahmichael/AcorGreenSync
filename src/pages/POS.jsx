@@ -10,6 +10,8 @@ import { useRml } from '@/hooks/useRml';
 import { toast } from 'sonner';
 import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
+import ReceiptModal from '@/components/pos/ReceiptModal';
+import ReceiptChoice from '@/components/pos/ReceiptChoice';
 import BarcodeInput from '@/components/pos/BarcodeInput';
 
 export default function POS() {
@@ -19,6 +21,9 @@ export default function POS() {
   const [showPayment, setShowPayment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastScanned, setLastScanned] = useState(null);
+  const [receiptTx, setReceiptTx] = useState(null);
+  const [showReceiptChoice, setShowReceiptChoice] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const isOnline = useOnlineStatus();
   const { addToQueue } = useOfflineQueue();
   const { processingEngine, syncCoordinator, refreshCache } = useRml();
@@ -93,11 +98,12 @@ export default function POS() {
 
   const processTransaction = async (paymentMethod) => {
     const txRef = `TXN-${Date.now()}`;
+    let transaction;
 
     try {
       // RML Module 4: ProcessingEngine executes checkout — calculates carbon,
       // validates stock, deducts local inventory, writes atomic ledger to IndexedDB
-      const transaction = await processingEngine.executeCheckout('main-store', cart, {
+      transaction = await processingEngine.executeCheckout('main-store', cart, {
         transaction_ref: txRef,
         store_name: 'Main Store',
         cashier_name: 'Cashier',
@@ -138,8 +144,10 @@ export default function POS() {
       return;
     }
 
+    setReceiptTx(transaction);
     setCart([]);
     setShowPayment(false);
+    setShowReceiptChoice(true);
   };
 
   return (
@@ -277,6 +285,21 @@ export default function POS() {
           co2e={cartCO2e}
           onConfirm={processTransaction}
           onClose={() => setShowPayment(false)}
+        />
+      )}
+
+      {showReceiptChoice && receiptTx && (
+        <ReceiptChoice
+          onPrint={() => { setShowReceiptChoice(false); setShowReceipt(true); }}
+          onSkip={() => { setShowReceiptChoice(false); setReceiptTx(null); }}
+          onClose={() => { setShowReceiptChoice(false); setReceiptTx(null); }}
+        />
+      )}
+
+      {showReceipt && receiptTx && (
+        <ReceiptModal
+          transaction={receiptTx}
+          onClose={() => { setShowReceipt(false); setReceiptTx(null); }}
         />
       )}
     </div>
