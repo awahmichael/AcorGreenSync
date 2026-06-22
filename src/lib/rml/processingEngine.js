@@ -128,6 +128,8 @@ export class ProcessingEngine {
 
     // Construct the parent transaction ledger block
     const transactionRef = options.transaction_ref || `TXN-${Date.now()}`;
+    const discountAmount = options.discount_amount || 0;
+    const finalTotal = Math.max(0, totalAmount - discountAmount);
     const executedTransaction = createTransaction({
       transaction_id: txId,
       transaction_ref: transactionRef,
@@ -135,7 +137,12 @@ export class ProcessingEngine {
       store_name: options.store_name || '',
       cashier_id: options.cashier_id || '',
       cashier_name: options.cashier_name || '',
-      total_amount: totalAmount,
+      customer_id: options.customer_id || '',
+      customer_name: options.customer_name || '',
+      subtotal: totalAmount,
+      discount_amount: discountAmount,
+      applied_promotions: Array.isArray(options.applied_promotions) ? options.applied_promotions.join(', ') : (options.applied_promotions || ''),
+      total_amount: finalTotal,
       total_kg_co2e: totalCarbonFootprint,
       total_carbon_footprint: totalCarbonFootprint,
       upstream_kg_co2e: upstreamCO2e,

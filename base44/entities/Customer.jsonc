@@ -1,0 +1,57 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Customer full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "loyalty_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Accrued loyalty points"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "Bronze",
+        "Silver",
+        "Gold",
+        "Platinum"
+      ],
+      "default": "Bronze"
+    },
+    "total_spend": {
+      "type": "number",
+      "default": 0,
+      "description": "Lifetime spend in GBP"
+    },
+    "total_kg_co2e": {
+      "type": "number",
+      "default": 0,
+      "description": "Lifetime carbon footprint from purchases"
+    },
+    "transaction_count": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

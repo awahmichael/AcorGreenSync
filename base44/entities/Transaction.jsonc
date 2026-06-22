@@ -18,6 +18,13 @@
     "cashier_name": {
       "type": "string"
     },
+    "customer_id": {
+      "type": "string",
+      "description": "Linked customer for CRM and loyalty tracking"
+    },
+    "customer_name": {
+      "type": "string"
+    },
     "items": {
       "type": "array",
       "items": {
@@ -68,8 +75,22 @@
         }
       }
     },
+    "subtotal": {
+      "type": "number",
+      "description": "Cart total before discounts"
+    },
+    "discount_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Total discount applied (promotions + promo codes)"
+    },
+    "applied_promotions": {
+      "type": "string",
+      "description": "Comma-separated list of applied promotion names"
+    },
     "total_amount": {
-      "type": "number"
+      "type": "number",
+      "description": "Final total after discounts"
     },
     "total_kg_co2e": {
       "type": "number"

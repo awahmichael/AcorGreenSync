@@ -21,6 +21,9 @@ import Settings from '@/pages/Settings';
 import Inventory from '@/pages/Inventory';
 import Suppliers from '@/pages/Suppliers';
 import Shifts from '@/pages/Shifts';
+import Customers from '@/pages/Customers';
+import Promotions from '@/pages/Promotions';
+import Returns from '@/pages/Returns';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -50,6 +53,9 @@ const AuthenticatedApp = () => {
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/shifts" element={<Shifts />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/promotions" element={<Promotions />} />
+        <Route path="/returns" element={<Returns />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />

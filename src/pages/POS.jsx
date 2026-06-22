@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X, User, Tag, PoundSterling } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -23,6 +23,12 @@ export default function POS() {
   const [receiptTx, setReceiptTx] = useState(null);
   const [showReceiptChoice, setShowReceiptChoice] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [promotions, setPromotions] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState(null);
   const isOnline = useOnlineStatus();
   const { addToQueue } = useOfflineQueue();
   const { processingEngine, syncCoordinator, refreshCache } = useRml();
@@ -30,9 +36,10 @@ export default function POS() {
   useEffect(() => {
     base44.entities.Product.filter({ is_active: true }).then(async (prods) => {
       setProducts(prods);
-      // Cache products into RML local IndexedDB for offline checkout
       await refreshCache();
     }).finally(() => setLoading(false));
+    base44.entities.Customer.list().then(setCustomers).catch(() => {});
+    base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, []);
 
   const filteredProducts = products.filter(p =>
@@ -93,8 +100,47 @@ export default function POS() {
 
   const cartTotal = cart.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
   const cartCO2e = cart.reduce((sum, i) => sum + (i.kg_co2e * i.quantity), 0);
-  const upstreamCO2e = cart.filter(i => i.scope3_category !== 'Category_11_Use_of_Sold_Products').reduce((sum, i) => sum + (i.kg_co2e * i.quantity), 0);
-  const downstreamCO2e = cart.filter(i => i.scope3_category !== 'Category_1_Purchased_Goods').reduce((sum, i) => sum + (i.kg_co2e * i.quantity), 0);
+
+  // Auto-apply eligible promotions (percentage, fixed, multibuy only — bogo/promo_code need manual action)
+  const eligiblePromos = promotions.filter(p => {
+    if (!p.is_active) return false;
+    const today = new Date().toISOString().split('T')[0];
+    if (p.start_date && today < p.start_date) return false;
+    if (p.end_date && today > p.end_date) return false;
+    if (p.min_spend && cartTotal < p.min_spend) return false;
+    if (p.category_filter && !cart.some(i => i.category === p.category_filter)) return false;
+    return ['percentage', 'fixed', 'multibuy'].includes(p.type);
+  });
+
+  const autoDiscount = eligiblePromos.reduce((sum, p) => {
+    if (p.type === 'percentage') return sum + (cartTotal * p.value / 100);
+    if (p.type === 'fixed') return sum + Math.min(p.value, cartTotal);
+    if (p.type === 'multibuy' && cartTotal >= p.value) return sum + (cartTotal * 0.05); // 5% multibuy bonus
+    return sum;
+  }, 0);
+
+  // Promo code discount
+  const promoDiscount = appliedPromo ? (appliedPromo.type === 'percentage' ? cartTotal * appliedPromo.value / 100 : Math.min(appliedPromo.value, cartTotal)) : 0;
+  const totalDiscount = autoDiscount + promoDiscount;
+  const finalTotal = Math.max(0, cartTotal - totalDiscount);
+
+  const applyPromoCode = () => {
+    const match = promotions.find(p => p.promo_code && p.promo_code.toUpperCase() === promoCode.trim().toUpperCase() && p.is_active);
+    if (match) {
+      setAppliedPromo(match);
+      toast.success(`Promo code applied: ${match.name}`);
+    } else {
+      toast.error('Invalid or expired promo code');
+    }
+  };
+
+  const customerResults = customerSearch.trim().length >= 2
+    ? customers.filter(c =>
+        c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        c.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        c.phone?.includes(customerSearch)
+      ).slice(0, 5)
+    : [];
 
   const processTransaction = async (paymentMethod) => {
     const txRef = `TXN-${Date.now()}`;
@@ -109,6 +155,11 @@ export default function POS() {
         cashier_name: 'Cashier',
         payment_method: paymentMethod,
         online: isOnline,
+        customer_id: selectedCustomer?.id,
+        customer_name: selectedCustomer?.name,
+        discount_amount: totalDiscount,
+        applied_promotions: [...eligiblePromos.map(p => p.name), appliedPromo?.name].filter(Boolean),
+        final_total: finalTotal,
       });
 
       if (isOnline) {
@@ -148,6 +199,10 @@ export default function POS() {
     setCart([]);
     setShowPayment(false);
     setShowReceiptChoice(true);
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setAppliedPromo(null);
+    setPromoCode('');
   };
 
   return (
@@ -248,6 +303,50 @@ export default function POS() {
           </div>
         </div>
 
+        {/* Customer lookup */}
+        <div className="px-5 py-3 border-b border-border bg-muted/30">
+          {selectedCustomer ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-foreground">{selectedCustomer.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedCustomer.tier} · {selectedCustomer.loyalty_points || 0} pts</div>
+                </div>
+              </div>
+              <button onClick={() => { setSelectedCustomer(null); setCustomerSearch(''); }} className="text-muted-foreground hover:text-destructive">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Attach customer (name/phone/email)..."
+                value={customerSearch}
+                onChange={e => setCustomerSearch(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+              {customerResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {customerResults.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setSelectedCustomer(c); setCustomerSearch(''); }}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 border-b border-border last:border-0"
+                    >
+                      <div className="text-sm font-medium text-foreground">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">{c.email || c.phone || c.tier}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="flex-1 overflow-y-auto divide-y divide-border">
           {cart.map(item => (
             <CartItem
@@ -275,9 +374,58 @@ export default function POS() {
               </div>
               <span className="font-semibold text-primary">{cartCO2e.toFixed(3)} kg CO₂e</span>
             </div>
+
+            {/* Promo code input */}
+            {!appliedPromo ? (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Promo code..."
+                    value={promoCode}
+                    onChange={e => setPromoCode(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') applyPromoCode(); }}
+                    className="pl-8 h-8 text-sm font-mono"
+                  />
+                </div>
+                <Button size="sm" variant="outline" onClick={applyPromoCode} className="h-8">Apply</Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-sm bg-green-50 border border-green-100 rounded-lg px-3 py-1.5">
+                <span className="flex items-center gap-1.5 text-green-700"><Tag className="w-3.5 h-3.5" /> {appliedPromo.name}</span>
+                <button onClick={() => { setAppliedPromo(null); setPromoCode(''); }} className="text-green-600 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            )}
+
+            {/* Discount breakdown */}
+            {totalDiscount > 0 && (
+              <div className="space-y-1.5 text-sm">
+                {eligiblePromos.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between text-green-600">
+                    <span className="text-xs">↓ {p.name}</span>
+                    <span className="font-medium">-£{p.type === 'percentage' ? (cartTotal * p.value / 100).toFixed(2) : p.type === 'fixed' ? Math.min(p.value, cartTotal).toFixed(2) : '0.00'}</span>
+                  </div>
+                ))}
+                {appliedPromo && (
+                  <div className="flex items-center justify-between text-green-600">
+                    <span className="text-xs">↓ {appliedPromo.name}</span>
+                    <span className="font-medium">-£{promoDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t border-border pt-1.5">
+                  <span className="text-xs text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">£{cartTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-red-500">
+                  <span className="flex items-center gap-1 text-xs"><PoundSterling className="w-3 h-3" /> Total Discount</span>
+                  <span className="font-medium">-£{totalDiscount.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between font-bold text-lg">
               <span>Total</span>
-              <span>£{cartTotal.toFixed(2)}</span>
+              <span>£{finalTotal.toFixed(2)}</span>
             </div>
             <Button onClick={() => setShowPayment(true)} className="w-full bg-primary hover:bg-primary/90">
               <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -289,7 +437,7 @@ export default function POS() {
 
       {showPayment && (
         <PaymentModal
-          total={cartTotal}
+          total={finalTotal}
           co2e={cartCO2e}
           onConfirm={processTransaction}
           onClose={() => setShowPayment(false)}

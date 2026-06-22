@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
   Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight,
-  Boxes, Truck, Clock, ShieldCheck
+  Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -26,11 +26,14 @@ const navGroups = [
       { path: '/products', label: 'Products', icon: Package, roles: ['admin', 'manager'] },
       { path: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'manager'] },
       { path: '/suppliers', label: 'Suppliers', icon: Truck, roles: ['admin', 'manager'] },
+      { path: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'manager', 'user'] },
+      { path: '/promotions', label: 'Promotions', icon: Tag, roles: ['admin', 'manager'] },
     ]
   },
   {
     label: 'Reporting',
     items: [
+      { path: '/returns', label: 'Returns', icon: RotateCcw, roles: ['admin', 'manager', 'user'] },
       { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'] },
       { path: '/compliance', label: 'Compliance', icon: ShieldCheck, roles: ['admin', 'manager'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },

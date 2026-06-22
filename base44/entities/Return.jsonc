@@ -1,0 +1,89 @@
+{
+  "name": "Return",
+  "type": "object",
+  "properties": {
+    "return_ref": {
+      "type": "string",
+      "description": "Unique return reference"
+    },
+    "original_transaction_ref": {
+      "type": "string",
+      "description": "Reference of the original sale transaction"
+    },
+    "original_transaction_id": {
+      "type": "string"
+    },
+    "return_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "kg_co2e": {
+            "type": "number",
+            "description": "CO2e reversed for this item"
+          }
+        }
+      }
+    },
+    "refund_amount": {
+      "type": "number"
+    },
+    "refund_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "card",
+        "store_credit",
+        "original"
+      ],
+      "default": "original"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "faulty",
+        "unwanted",
+        "wrong_item",
+        "damaged",
+        "other"
+      ],
+      "default": "unwanted"
+    },
+    "processed_by": {
+      "type": "string"
+    },
+    "return_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "carbon_reversal_kg_co2e": {
+      "type": "number",
+      "default": 0,
+      "description": "Total CO2e reversed from Scope 3 reporting"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "return_ref",
+    "original_transaction_ref",
+    "refund_amount",
+    "return_date"
+  ]
+}

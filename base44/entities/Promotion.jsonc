@@ -1,0 +1,59 @@
+{
+  "name": "Promotion",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Promotion name"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "percentage",
+        "fixed",
+        "bogo",
+        "multibuy",
+        "promo_code"
+      ],
+      "default": "percentage",
+      "description": "percentage = % off, fixed = \u00a3 off, bogo = buy X get Y, multibuy = spend threshold, promo_code = code-based"
+    },
+    "value": {
+      "type": "number",
+      "description": "Percentage (e.g. 10 = 10%), fixed \u00a3 amount, or quantity threshold for BOGO/multibuy"
+    },
+    "category_filter": {
+      "type": "string",
+      "description": "Optional: limit promotion to a specific product category"
+    },
+    "min_spend": {
+      "type": "number",
+      "default": 0,
+      "description": "Minimum cart total required to activate"
+    },
+    "promo_code": {
+      "type": "string",
+      "description": "Code customers enter at checkout (for promo_code type)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "value"
+  ]
+}
