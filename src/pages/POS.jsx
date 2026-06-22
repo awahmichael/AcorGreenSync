@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -12,7 +12,6 @@ import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 import ReceiptChoice from '@/components/pos/ReceiptChoice';
-import BarcodeInput from '@/components/pos/BarcodeInput';
 
 export default function POS() {
   const [products, setProducts] = useState([]);
@@ -155,23 +154,31 @@ export default function POS() {
     <div className="h-full flex flex-col lg:flex-row">
       {/* Product grid */}
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-        {/* Scanner + search bar */}
-        <div className="space-y-2 mb-4">
-          <BarcodeInput
-            onScan={handleScan}
-            lastScanned={lastScanned}
-            onClear={() => setLastScanned(null)}
-          />
+        {/* Unified search + barcode scan field */}
+        <div className="mb-4">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, category, SKU..."
+                placeholder="Search by name, category, or scan/type barcode & press Enter..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && search.trim().length >= 6) {
+                    handleScan(search.trim());
+                  }
+                }}
                 className="pl-9"
               />
             </div>
+            {lastScanned && (
+              <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border whitespace-nowrap ${lastScanned.found ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                {lastScanned.found ? `✓ ${lastScanned.name}` : `✗ Not found: ${lastScanned.code}`}
+                <button onClick={() => setLastScanned(null)} className="ml-1 opacity-60 hover:opacity-100">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
             {!isOnline && (
               <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
                 <WifiOff className="w-3.5 h-3.5" />
