@@ -4,7 +4,9 @@ import {
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
   Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight, ChevronDown,
   Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw,
-  TrendingUp, UserCog, DollarSign, ClipboardList, ArrowLeftRight, Gift
+  TrendingUp, UserCog, DollarSign, ClipboardList, ArrowLeftRight, Gift,
+  Star, Megaphone, Globe, Wrench, FileText, Layers,
+  Tags, Banknote, Monitor, BarChart, Shield, KeyRound
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -19,26 +21,50 @@ const navGroups = [
       { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'user'] },
       { path: '/pos', label: 'POS Terminal', icon: ShoppingCart, roles: ['admin', 'manager', 'user'] },
       { path: '/shifts', label: 'Shifts', icon: Clock, roles: ['admin', 'manager', 'user'] },
+      { path: '/special-orders', label: 'Special Orders', icon: ShoppingCart, roles: ['admin', 'manager', 'user'] },
+      { path: '/work-orders', label: 'Work Orders', icon: Wrench, roles: ['admin', 'manager', 'user'] },
+      { path: '/cash-management', label: 'Cash Management', icon: Banknote, roles: ['admin', 'manager', 'user'] },
+      { path: '/customer-display', label: 'Customer Display', icon: Monitor, roles: ['admin', 'manager', 'user'] },
     ]
   },
   {
     label: 'Catalogue',
     items: [
       { path: '/products', label: 'Products', icon: Package, roles: ['admin', 'manager'] },
+      { path: '/bundles', label: 'Kits & Bundles', icon: Layers, roles: ['admin', 'manager'] },
+      { path: '/price-books', label: 'Price Books', icon: Tags, roles: ['admin', 'manager'] },
       { path: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'manager'] },
       { path: '/stock-transfers', label: 'Stock Transfers', icon: ArrowLeftRight, roles: ['admin', 'manager'] },
       { path: '/suppliers', label: 'Suppliers', icon: Truck, roles: ['admin', 'manager'] },
       { path: '/purchase-orders', label: 'Purchase Orders', icon: ClipboardList, roles: ['admin', 'manager'] },
       { path: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'manager', 'user'] },
+      { path: '/loyalty', label: 'Loyalty Program', icon: Star, roles: ['admin', 'manager'] },
       { path: '/promotions', label: 'Promotions', icon: Tag, roles: ['admin', 'manager'] },
       { path: '/gift-cards', label: 'Gift Cards', icon: Gift, roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    label: 'Commerce',
+    items: [
+      { path: '/ecommerce', label: 'E-commerce Orders', icon: Globe, roles: ['admin', 'manager'] },
+      { path: '/marketing', label: 'Marketing Campaigns', icon: Megaphone, roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    label: 'Finance',
+    items: [
+      { path: '/invoices', label: 'B2B Invoices', icon: FileText, roles: ['admin', 'manager'] },
+      { path: '/accounting-export', label: 'Accounting Export', icon: FileText, roles: ['admin', 'manager'] },
+      { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
     ]
   },
   {
     label: 'Reporting',
     items: [
       { path: '/returns', label: 'Returns', icon: RotateCcw, roles: ['admin', 'manager', 'user'] },
+      { path: '/demand-forecasting', label: 'Demand Forecasting', icon: BarChart, roles: ['admin', 'manager'] },
       { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'], children: [
+        { path: '/reports?cat=store_close', label: 'Store Close Reports', icon: DollarSign },
         { path: '/reports?cat=sales', label: 'Sales & Revenue', icon: TrendingUp },
         { path: '/reports?cat=inventory', label: 'Inventory', icon: Package },
         { path: '/reports?cat=customer', label: 'Customer & CRM', icon: Users },
@@ -49,6 +75,7 @@ const navGroups = [
         { path: '/reports?cat=carbon', label: 'Carbon & Sustainability', icon: Leaf },
       ] },
       { path: '/compliance', label: 'Compliance', icon: ShieldCheck, roles: ['admin', 'manager'] },
+      { path: '/staff-permissions', label: 'Staff Permissions', icon: KeyRound, roles: ['admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]
   },

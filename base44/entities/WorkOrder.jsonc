@@ -1,0 +1,101 @@
+{
+  "name": "WorkOrder",
+  "type": "object",
+  "properties": {
+    "order_ref": {
+      "type": "string",
+      "description": "Work order reference"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Product being serviced"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "service_type": {
+      "type": "string",
+      "enum": [
+        "repair",
+        "customization",
+        "alteration",
+        "assembly",
+        "other"
+      ],
+      "default": "repair"
+    },
+    "description": {
+      "type": "string",
+      "description": "Work description / customer issue"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Technician/staff assigned"
+    },
+    "labor_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "parts_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "total_charge": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "in_progress",
+        "awaiting_parts",
+        "completed",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "received"
+    },
+    "deposit_paid": {
+      "type": "number",
+      "default": 0
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expected_completion": {
+      "type": "string",
+      "format": "date"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_ref",
+    "customer_name",
+    "product_name",
+    "service_type",
+    "status"
+  ]
+}

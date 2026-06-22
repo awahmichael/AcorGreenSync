@@ -1,0 +1,64 @@
+{
+  "name": "PriceBook",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Price book name e.g. 'Trade Pricing', 'Wholesale'"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tier_type": {
+      "type": "string",
+      "enum": [
+        "retail",
+        "trade",
+        "wholesale",
+        "vip",
+        "staff",
+        "custom"
+      ],
+      "default": "retail"
+    },
+    "default_discount_pct": {
+      "type": "number",
+      "description": "Default discount % off retail price"
+    },
+    "product_overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "custom_price": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Product-specific price overrides"
+    },
+    "min_quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Minimum quantity for tier pricing"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "tier_type",
+    "is_active"
+  ]
+}

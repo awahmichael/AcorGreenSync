@@ -13,8 +13,10 @@ import FinancialReports from '@/components/reports/FinancialReports';
 import PromotionReports from '@/components/reports/PromotionReports';
 import OperationalReports from '@/components/reports/OperationalReports';
 import CarbonReports from '@/components/reports/CarbonReports';
+import StoreCloseReports from '@/components/reports/StoreCloseReports';
 
 const CATEGORIES = [
+  { id: 'store_close', label: 'Store Close', icon: DollarSign, component: StoreCloseReports, count: 12 },
   { id: 'sales', label: 'Sales & Revenue', icon: TrendingUp, component: SalesReports, count: 20 },
   { id: 'inventory', label: 'Inventory', icon: Package, component: InventoryReports, count: 13 },
   { id: 'customer', label: 'Customer & CRM', icon: Users, component: CustomerReports, count: 8 },
@@ -56,15 +58,16 @@ export default function Reports() {
       base44.entities.CarbonTarget.list(),
       base44.entities.EmissionFactor.list(),
       base44.entities.AuditLog.list('-performed_at', 200),
+      base44.entities.GiftCard.list('-issued_date', 200),
     ]).then(([
       transactions, products, customers, suppliers, promotions,
-      returns, shifts, stockMovements, stores, carbonTargets, emissionFactors, auditLogs
+      returns, shifts, stockMovements, stores, carbonTargets, emissionFactors, auditLogs, giftCards
     ]) => {
-      setData({ transactions, products, customers, suppliers, promotions, returns, shifts, stockMovements, stores, carbonTargets, emissionFactors, auditLogs });
+      setData({ transactions, products, customers, suppliers, promotions, returns, shifts, stockMovements, stores, carbonTargets, emissionFactors, auditLogs, giftCards });
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const activeCat = CATEGORIES.find(c => c.id === activeCategory);
+  const activeCat = CATEGORIES.find(c => c.id === activeCategory) || CATEGORIES[0];
   const ActiveComponent = activeCat?.component;
 
   const periodLabel = isCustom && dateRange
@@ -96,7 +99,7 @@ export default function Reports() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">82 reports across 8 categories — competitor-parity suite</p>
+          <p className="text-muted-foreground text-sm mt-0.5">94 reports across 9 categories — competitor-parity suite</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={period} onValueChange={setPeriod}>

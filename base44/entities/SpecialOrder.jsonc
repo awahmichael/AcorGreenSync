@@ -1,0 +1,84 @@
+{
+  "name": "SpecialOrder",
+  "type": "object",
+  "properties": {
+    "order_ref": {
+      "type": "string",
+      "description": "Special order reference"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "unit_price": {
+      "type": "number"
+    },
+    "deposit_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Deposit collected at order time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ordered_from_supplier",
+        "in_transit",
+        "arrived",
+        "notified",
+        "collected",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "supplier_name": {
+      "type": "string"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "estimated_arrival": {
+      "type": "string",
+      "format": "date"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collected_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_ref",
+    "customer_name",
+    "product_name",
+    "status",
+    "order_date"
+  ]
+}

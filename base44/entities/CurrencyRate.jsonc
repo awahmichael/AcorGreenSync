@@ -1,0 +1,39 @@
+{
+  "name": "CurrencyRate",
+  "type": "object",
+  "properties": {
+    "currency_code": {
+      "type": "string",
+      "description": "ISO 4217 code e.g. USD, EUR"
+    },
+    "currency_name": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Currency symbol e.g. $, \u20ac"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "description": "Rate relative to GBP base"
+    },
+    "is_base_currency": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "currency_code",
+    "currency_name",
+    "exchange_rate",
+    "is_active"
+  ]
+}

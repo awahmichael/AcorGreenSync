@@ -1,0 +1,99 @@
+{
+  "name": "OnlineOrder",
+  "type": "object",
+  "properties": {
+    "order_ref": {
+      "type": "string",
+      "description": "Online order reference"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "fulfillment_type": {
+      "type": "string",
+      "enum": [
+        "delivery",
+        "pickup",
+        "bopis",
+        "ship_from_store"
+      ],
+      "default": "delivery"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "confirmed",
+        "picking",
+        "ready",
+        "shipped",
+        "delivered",
+        "picked_up",
+        "cancelled"
+      ],
+      "default": "new"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "line_total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number"
+    },
+    "shipping_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "total_amount": {
+      "type": "number"
+    },
+    "delivery_address": {
+      "type": "string"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Fulfilling store"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_ref",
+    "customer_name",
+    "status",
+    "order_date"
+  ]
+}

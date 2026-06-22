@@ -27,6 +27,20 @@ import Returns from '@/pages/Returns';
 import PurchaseOrders from '@/pages/PurchaseOrders';
 import StockTransfers from '@/pages/StockTransfers';
 import GiftCards from '@/pages/GiftCards';
+import Loyalty from '@/pages/Loyalty';
+import Marketing from '@/pages/Marketing';
+import Ecommerce from '@/pages/Ecommerce';
+import StaffPermissions from '@/pages/StaffPermissions';
+import SpecialOrders from '@/pages/SpecialOrders';
+import WorkOrders from '@/pages/WorkOrders';
+import Invoices from '@/pages/Invoices';
+import PriceBooks from '@/pages/PriceBooks';
+import Bundles from '@/pages/Bundles';
+import AccountingExport from '@/pages/AccountingExport';
+import CashManagement from '@/pages/CashManagement';
+import CustomerDisplay from '@/pages/CustomerDisplay';
+import DemandForecasting from '@/pages/DemandForecasting';
+import Currencies from '@/pages/Currencies';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -62,6 +76,20 @@ const AuthenticatedApp = () => {
         <Route path="/purchase-orders" element={<PurchaseOrders />} />
         <Route path="/stock-transfers" element={<StockTransfers />} />
         <Route path="/gift-cards" element={<GiftCards />} />
+        <Route path="/loyalty" element={<Loyalty />} />
+        <Route path="/marketing" element={<Marketing />} />
+        <Route path="/ecommerce" element={<Ecommerce />} />
+        <Route path="/staff-permissions" element={<StaffPermissions />} />
+        <Route path="/special-orders" element={<SpecialOrders />} />
+        <Route path="/work-orders" element={<WorkOrders />} />
+        <Route path="/invoices" element={<Invoices />} />
+        <Route path="/price-books" element={<PriceBooks />} />
+        <Route path="/bundles" element={<Bundles />} />
+        <Route path="/accounting-export" element={<AccountingExport />} />
+        <Route path="/cash-management" element={<CashManagement />} />
+        <Route path="/customer-display" element={<CustomerDisplay />} />
+        <Route path="/demand-forecasting" element={<DemandForecasting />} />
+        <Route path="/currencies" element={<Currencies />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />

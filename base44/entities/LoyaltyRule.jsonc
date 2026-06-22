@@ -1,0 +1,66 @@
+{
+  "name": "LoyaltyRule",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Rule name e.g. 'Earn 1 point per \u00a31'"
+    },
+    "rule_type": {
+      "type": "string",
+      "enum": [
+        "earning_rate",
+        "tier_threshold",
+        "redemption",
+        "bonus_multiplier"
+      ],
+      "default": "earning_rate"
+    },
+    "points_per_pound": {
+      "type": "number",
+      "default": 1,
+      "description": "Points earned per \u00a31 spent"
+    },
+    "tier_name": {
+      "type": "string",
+      "description": "Tier name for threshold rules"
+    },
+    "min_spend_threshold": {
+      "type": "number",
+      "description": "Spend required to reach tier"
+    },
+    "points_required": {
+      "type": "number",
+      "description": "Points needed for redemption"
+    },
+    "reward_value": {
+      "type": "number",
+      "description": "Reward amount in \u00a3"
+    },
+    "bonus_multiplier": {
+      "type": "number",
+      "default": 1,
+      "description": "Multiplier for promotional periods"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "rule_type",
+    "is_active"
+  ]
+}

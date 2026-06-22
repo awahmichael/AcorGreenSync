@@ -1,0 +1,122 @@
+{
+  "name": "CashDrawer",
+  "type": "object",
+  "properties": {
+    "drawer_ref": {
+      "type": "string",
+      "description": "Drawer session reference"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "cashier_id": {
+      "type": "string"
+    },
+    "cashier_name": {
+      "type": "string"
+    },
+    "shift_id": {
+      "type": "string",
+      "description": "Linked shift"
+    },
+    "opening_float": {
+      "type": "number",
+      "description": "Starting cash in drawer"
+    },
+    "cash_sales": {
+      "type": "number",
+      "default": 0,
+      "description": "Cash received from sales"
+    },
+    "cash_refunds": {
+      "type": "number",
+      "default": 0,
+      "description": "Cash refunded to customers"
+    },
+    "payouts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "authorized_by": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Cash removed from drawer"
+    },
+    "drops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Cash deposited to safe/bank"
+    },
+    "expected_cash": {
+      "type": "number",
+      "description": "Calculated expected cash at close"
+    },
+    "counted_cash": {
+      "type": "number",
+      "description": "Actual counted cash"
+    },
+    "variance": {
+      "type": "number",
+      "description": "Counted - Expected"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "counted",
+        "reconciled",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "drawer_ref",
+    "store_name",
+    "cashier_name",
+    "opening_float",
+    "status",
+    "opened_at"
+  ]
+}

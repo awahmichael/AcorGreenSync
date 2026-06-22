@@ -1,0 +1,76 @@
+{
+  "name": "DemandForecast",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "avg_daily_sales": {
+      "type": "number",
+      "description": "Average units sold per day"
+    },
+    "avg_weekly_sales": {
+      "type": "number",
+      "description": "Average units sold per week"
+    },
+    "current_stock": {
+      "type": "number"
+    },
+    "days_of_stock": {
+      "type": "number",
+      "description": "Days until stock runs out at current rate"
+    },
+    "reorder_point": {
+      "type": "number",
+      "description": "Stock level that triggers reorder"
+    },
+    "reorder_quantity": {
+      "type": "number",
+      "description": "Suggested reorder quantity"
+    },
+    "trend": {
+      "type": "string",
+      "enum": [
+        "increasing",
+        "stable",
+        "decreasing"
+      ],
+      "default": "stable"
+    },
+    "seasonality_factor": {
+      "type": "number",
+      "default": 1,
+      "description": "Seasonal demand multiplier"
+    },
+    "last_sale_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "forecast_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "confidence_score": {
+      "type": "number",
+      "default": 0,
+      "description": "0-100 forecast confidence"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "forecast_date"
+  ]
+}

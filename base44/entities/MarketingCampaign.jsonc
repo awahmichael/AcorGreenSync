@@ -1,0 +1,86 @@
+{
+  "name": "MarketingCampaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Campaign name"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "both"
+      ],
+      "default": "email"
+    },
+    "segment": {
+      "type": "string",
+      "enum": [
+        "all",
+        "bronze",
+        "silver",
+        "gold",
+        "platinum",
+        "new_customers",
+        "inactive"
+      ],
+      "default": "all"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "body": {
+      "type": "string",
+      "description": "Campaign message body"
+    },
+    "promo_code": {
+      "type": "string",
+      "description": "Linked promo code"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "sending",
+        "sent",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "recipients_count": {
+      "type": "number",
+      "default": 0
+    },
+    "open_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "Email open rate %"
+    },
+    "click_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "Click-through rate %"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "channel",
+    "status"
+  ]
+}

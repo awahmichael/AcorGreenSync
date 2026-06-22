@@ -1,0 +1,81 @@
+{
+  "name": "ProductBundle",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Bundle name"
+    },
+    "description": {
+      "type": "string"
+    },
+    "bundle_type": {
+      "type": "string",
+      "enum": [
+        "kit",
+        "bundle",
+        "assembly",
+        "multipack"
+      ],
+      "default": "bundle"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_cost": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "bundle_price": {
+      "type": "number",
+      "description": "Price charged for the bundle"
+    },
+    "component_cost_total": {
+      "type": "number",
+      "description": "Total cost of all components"
+    },
+    "margin_amount": {
+      "type": "number",
+      "description": "Bundle price - component cost"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Bundle SKU"
+    },
+    "upc": {
+      "type": "string",
+      "description": "Bundle barcode"
+    },
+    "category": {
+      "type": "string"
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Assembled bundles in stock"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "bundle_type",
+    "bundle_price",
+    "is_active"
+  ]
+}
