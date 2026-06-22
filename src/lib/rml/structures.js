@@ -3,28 +3,22 @@
  * Relational Data Models & Serialization
  * 
  * JavaScript adaptation of the Rust/WASM structures module.
- * Replaces WASM structs with plain JS objects + UUID generation.
- * No external dependencies — uses native browser crypto API.
+ * Now includes SCD Type 2 versioning fields for immutable carbon tracking.
  */
 
 // ── SyncStatus Enumeration ──────────────────────────────────────────
-// Tracks synchronization state of ledger blocks between offline edge
-// nodes and the centralized Base44 cloud database.
 export const SyncStatus = Object.freeze({
-  PENDING: 'pending_sync',        // Recorded locally; waiting for uplink
-  SYNCED: 'synced',               // Pushed and reconciled with Base44
-  CONFLICT: 'conflict',           // Version/ref mismatch requiring intervention
-  PENDING_EMISSION: 'pending_emission_calc', // Factors missing at calc time
+  PENDING: 'pending_sync',
+  SYNCED: 'synced',
+  CONFLICT: 'conflict',
+  PENDING_EMISSION: 'pending_emission_calc',
 });
 
 // ── UUID Generation ─────────────────────────────────────────────────
-// Cryptographically unique identifiers generated at the edge node
-// to prevent duplication across intermittent sync cycles.
 export function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  // Fallback for older browsers
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -33,9 +27,12 @@ export function generateUUID() {
 }
 
 // ── Data Model Factories ───────────────────────────────────────────
-// Each factory enforces structural integrity matching the Rust structs.
 
-/** InventorySku — master inventory entity cached on the edge node. */
+/**
+ * InventorySku — master inventory entity cached on the edge node.
+ * Now includes SCD Type 2 versioning fields (version, valid_from, valid_to, 
+ * is_current_version, base_product_id).
+ */
 export function createInventorySku(data) {
   return {
     sku_id: data.sku_id || data.id || generateUUID(),
@@ -54,6 +51,12 @@ export function createInventorySku(data) {
     supplier_id: data.supplier_id || null,
     is_active: data.is_active !== false,
     last_updated_at: Date.now(),
+    // SCD Type 2 versioning fields
+    base_product_id: data.base_product_id || data.id || null,
+    version: Number(data.version) || 1,
+    valid_from: data.valid_from || new Date().toISOString(),
+    valid_to: data.valid_to || null,
+    is_current_version: data.is_current_version !== false,
   };
 }
 
@@ -80,13 +83,17 @@ export function createTransaction(data) {
   };
 }
 
-/** TransactionLineItem — relational sub-line linking SKU to parent transaction. */
+/**
+ * TransactionLineItem — relational sub-line linking SKU to parent transaction.
+ * Now stamps applied_version and applied_carbon_coefficient for audit lock.
+ */
 export function createTransactionLineItem(data) {
   return {
     line_item_id: data.line_item_id || generateUUID(),
     transaction_id: data.transaction_id || '',
     sku_id: data.sku_id || data.product_id || '',
     product_id: data.product_id || data.sku_id || '',
+    base_product_id: data.base_product_id || data.product_id || '',
     product_name: data.product_name || '',
     category: data.category || '',
     quantity: Number(data.quantity) || 0,
@@ -97,6 +104,10 @@ export function createTransactionLineItem(data) {
     line_carbon_footprint: Number(data.kg_co2e ?? data.line_carbon_footprint) || 0,
     emission_factor_source: data.emission_factor_source || 'Pending',
     scope3_category: data.scope3_category || 'Both',
+    // CRITICAL: Audit lock fields — permanently bind this line item to the
+    // exact product version and carbon coefficient active at the moment of sale.
+    applied_version: Number(data.applied_version) || 1,
+    applied_carbon_coefficient: Number(data.applied_carbon_coefficient ?? data.emission_factor ?? data.carbon_coefficient) || 0,
   };
 }
 

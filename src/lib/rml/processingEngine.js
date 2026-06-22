@@ -2,11 +2,12 @@
  * ACORCLOUD GREEN-SYNC: RML — MODULE 4
  * High-Velocity Checkout & Environmental Mapping
  * 
- * JavaScript adaptation of the Rust ProcessingEngine.
- * Executes complete retail calculations, stock balances, and carbon
- * audits with zero client latency (no WASM needed — pure JS).
+ * Now stamps applied_version and applied_carbon_coefficient on each line
+ * item, permanently binding the transaction to the exact product version
+ * active at the moment of sale (SCD Type 2 audit lock).
  * 
  * Mathematical Logic: E_total = Sum (Quantity_i × Coefficient_i)
+ * Audit Lock: line.applied_version = product.version (at sale time)
  */
 
 import { localDB } from './localDatabase';
@@ -24,11 +25,13 @@ export class ProcessingEngine {
 
   /**
    * Main transaction lifecycle pipeline.
+   * 
    * Executes complete retail calculations, stock balances, and carbon
-   * audits in a single pass.
+   * audits in a single pass. Each line item is permanently stamped with
+   * the product version active at checkout time.
    * 
    * @param {string} locationId - Store/location identifier
-   * @param {Array} cart - Array of CartItem objects
+   * @param {Array} cart - Array of CartItem objects (with _productData attached)
    * @param {Object} options - { cashier_id, cashier_name, store_name, payment_method, online }
    * @returns {Promise<Transaction>} - The committed transaction record
    */
@@ -69,10 +72,16 @@ export class ProcessingEngine {
       }
 
       // Calculation mapping: Emission totals match quantity × compliance metrics
+      // The carbon coefficient is locked from the EXACT version active at this moment
       const carbonCoefficient =
         skuProfile.carbon_coefficient ?? skuProfile.emission_factor_defra ?? skuProfile.emission_factor_climatiq ?? 0;
       const calcPrice = (skuProfile.price || 0) * item.quantity;
       const calcCarbon = item.quantity * carbonCoefficient;
+
+      // CRITICAL: Determine the product version for audit lock
+      // This permanently binds the line item to the exact carbon data active at sale time
+      const appliedVersion = skuProfile.version || 1;
+      const baseProductId = skuProfile.base_product_id || skuProfile.sku_id || item.product_id;
 
       totalAmount += calcPrice;
       totalCarbonFootprint += calcCarbon;
@@ -87,11 +96,14 @@ export class ProcessingEngine {
       }
 
       // Generate relational line mapping for the ledger
+      // The applied_version and applied_carbon_coefficient fields are the
+      // deterministic audit safeguard — they freeze the carbon data at sale time
       const lineItem = createTransactionLineItem({
         line_item_id: generateUUID(),
         transaction_id: txId,
         sku_id: skuProfile.sku_id || item.product_id,
         product_id: item.product_id || skuProfile.sku_id,
+        base_product_id: baseProductId,
         product_name: skuProfile.name || item.product_name,
         category: skuProfile.category_id || skuProfile.category || item.category,
         quantity: item.quantity,
@@ -103,6 +115,9 @@ export class ProcessingEngine {
         line_carbon_footprint: calcCarbon,
         emission_factor_source: skuProfile.emission_factor_source || 'Pending',
         scope3_category: scope3Cat,
+        // Audit lock fields
+        applied_version: appliedVersion,
+        applied_carbon_coefficient: carbonCoefficient,
       });
       lineItemsToCommit.push(lineItem);
 

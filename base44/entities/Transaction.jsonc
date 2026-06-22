@@ -26,6 +26,10 @@
           "product_id": {
             "type": "string"
           },
+          "base_product_id": {
+            "type": "string",
+            "description": "Stable product ID across versions (SCD Type 2)"
+          },
           "product_name": {
             "type": "string"
           },
@@ -52,6 +56,14 @@
           },
           "scope3_category": {
             "type": "string"
+          },
+          "applied_version": {
+            "type": "number",
+            "description": "CRITICAL: Product version active at moment of sale (audit lock)"
+          },
+          "applied_carbon_coefficient": {
+            "type": "number",
+            "description": "Exact carbon coefficient locked in at moment of sale (kg CO2e per unit)"
           }
         }
       }

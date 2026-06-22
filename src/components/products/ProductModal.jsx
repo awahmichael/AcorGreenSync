@@ -80,6 +80,12 @@ export default function ProductModal({ product, onClose, onSaved }) {
       defra_factor_id: rmlResult?.factor?.id || product?.defra_factor_id || null,
       defra_factor_version: rmlResult?.factor?.version || product?.defra_factor_version || null,
       supplier_id: form.supplier_id || null,
+      // SCD Type 2 versioning — set on creation, preserved on edits
+      version: product?.version || 1,
+      is_current_version: product?.is_current_version !== false,
+      valid_from: product?.valid_from || new Date().toISOString(),
+      valid_to: product?.valid_to || null,
+      base_product_id: product?.base_product_id || crypto.randomUUID(),
     };
 
     if (product?.id) {

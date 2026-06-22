@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProductModal from '@/components/products/ProductModal';
+import CarbonCoefficientUpdater from '@/components/products/CarbonCoefficientUpdater';
 
 const STATUS_STYLE = {
   Mapped: 'bg-green-50 text-green-700 border-green-200',
@@ -19,6 +20,8 @@ export default function Products() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
+  const [showCarbonUpdater, setShowCarbonUpdater] = useState(false);
+  const [carbonProduct, setCarbonProduct] = useState(null);
   const [filter, setFilter] = useState('all');
 
   const load = () => {
@@ -106,6 +109,7 @@ export default function Products() {
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">kg CO₂e/unit</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Source</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ver</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -113,7 +117,7 @@ export default function Products() {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={7} className="px-4 py-3">
+                    <td colSpan={8} className="px-4 py-3">
                       <div className="h-4 bg-muted rounded animate-pulse" />
                     </td>
                   </tr>
@@ -145,8 +149,14 @@ export default function Products() {
                       {p.emission_mapping_status || 'Pending'}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-xs font-mono text-muted-foreground">v{p.version || 1}</span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
+                      <button onClick={() => { setCarbonProduct(p); setShowCarbonUpdater(true); }} className="p-1.5 rounded-lg hover:bg-green-50 text-muted-foreground hover:text-primary" title="Update carbon factor (versioned)">
+                        <Leaf className="w-3.5 h-3.5" />
+                      </button>
                       <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -170,6 +180,14 @@ export default function Products() {
           product={editProduct}
           onClose={() => setShowModal(false)}
           onSaved={() => { setShowModal(false); load(); }}
+        />
+      )}
+
+      {showCarbonUpdater && (
+        <CarbonCoefficientUpdater
+          product={carbonProduct}
+          onClose={() => setShowCarbonUpdater(false)}
+          onSaved={() => { setShowCarbonUpdater(false); load(); }}
         />
       )}
     </div>

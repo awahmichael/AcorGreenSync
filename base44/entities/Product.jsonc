@@ -98,6 +98,30 @@
     "is_active": {
       "type": "boolean",
       "default": true
+    },
+    "base_product_id": {
+      "type": "string",
+      "description": "Stable ID constant across all versions of this product (SCD Type 2)"
+    },
+    "version": {
+      "type": "number",
+      "description": "Incrementing version index tracking modifications (v1, v2, v3...)",
+      "default": 1
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when this version became active"
+    },
+    "valid_to": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when this version was superseded. Null if current."
+    },
+    "is_current_version": {
+      "type": "boolean",
+      "default": true,
+      "description": "True if this is the latest active version"
     }
   },
   "required": [
