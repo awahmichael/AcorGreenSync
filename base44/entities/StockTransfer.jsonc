@@ -1,0 +1,69 @@
+{
+  "name": "StockTransfer",
+  "type": "object",
+  "properties": {
+    "transfer_ref": {
+      "type": "string",
+      "description": "Unique transfer reference"
+    },
+    "from_store_id": {
+      "type": "string"
+    },
+    "from_store_name": {
+      "type": "string"
+    },
+    "to_store_id": {
+      "type": "string"
+    },
+    "to_store_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "in_transit",
+        "received",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "shipped_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "transfer_ref",
+    "from_store_name",
+    "to_store_name",
+    "status"
+  ]
+}

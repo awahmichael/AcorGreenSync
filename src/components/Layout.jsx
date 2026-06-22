@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
   Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight, ChevronDown,
   Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw,
-  TrendingUp, UserCog, DollarSign
+  TrendingUp, UserCog, DollarSign, ClipboardList, ArrowLeftRight, Gift
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -26,9 +26,12 @@ const navGroups = [
     items: [
       { path: '/products', label: 'Products', icon: Package, roles: ['admin', 'manager'] },
       { path: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'manager'] },
+      { path: '/stock-transfers', label: 'Stock Transfers', icon: ArrowLeftRight, roles: ['admin', 'manager'] },
       { path: '/suppliers', label: 'Suppliers', icon: Truck, roles: ['admin', 'manager'] },
+      { path: '/purchase-orders', label: 'Purchase Orders', icon: ClipboardList, roles: ['admin', 'manager'] },
       { path: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'manager', 'user'] },
       { path: '/promotions', label: 'Promotions', icon: Tag, roles: ['admin', 'manager'] },
+      { path: '/gift-cards', label: 'Gift Cards', icon: Gift, roles: ['admin', 'manager'] },
     ]
   },
   {

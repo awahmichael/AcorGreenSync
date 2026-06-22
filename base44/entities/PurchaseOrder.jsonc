@@ -1,0 +1,101 @@
+{
+  "name": "PurchaseOrder",
+  "type": "object",
+  "properties": {
+    "po_ref": {
+      "type": "string",
+      "description": "Unique purchase order reference"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "supplier_name": {
+      "type": "string"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "partially_received",
+        "received",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity_ordered": {
+            "type": "number"
+          },
+          "quantity_received": {
+            "type": "number",
+            "default": 0
+          },
+          "unit_cost": {
+            "type": "number"
+          },
+          "line_cost": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Sum of line item costs"
+    },
+    "shipping_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "duty_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "insurance_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "landed_cost_total": {
+      "type": "number",
+      "description": "Subtotal + shipping + duty + insurance"
+    },
+    "expected_delivery_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "po_ref",
+    "supplier_name",
+    "status",
+    "order_date"
+  ]
+}

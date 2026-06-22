@@ -24,6 +24,9 @@ import Shifts from '@/pages/Shifts';
 import Customers from '@/pages/Customers';
 import Promotions from '@/pages/Promotions';
 import Returns from '@/pages/Returns';
+import PurchaseOrders from '@/pages/PurchaseOrders';
+import StockTransfers from '@/pages/StockTransfers';
+import GiftCards from '@/pages/GiftCards';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -56,6 +59,9 @@ const AuthenticatedApp = () => {
         <Route path="/customers" element={<Customers />} />
         <Route path="/promotions" element={<Promotions />} />
         <Route path="/returns" element={<Returns />} />
+        <Route path="/purchase-orders" element={<PurchaseOrders />} />
+        <Route path="/stock-transfers" element={<StockTransfers />} />
+        <Route path="/gift-cards" element={<GiftCards />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />
