@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProductModal from '@/components/products/ProductModal';
 import VersionHistoryModal from '@/components/products/VersionHistoryModal';
+import BulkUploadModal from '@/components/products/BulkUploadModal';
 
 const STATUS_STYLE = {
   Mapped: 'bg-green-50 text-green-700 border-green-200',
@@ -22,6 +23,7 @@ export default function Products() {
   const [editProduct, setEditProduct] = useState(null);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [historyProduct, setHistoryProduct] = useState(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [filter, setFilter] = useState('all');
 
   const load = () => {
@@ -63,10 +65,16 @@ export default function Products() {
           <h1 className="text-2xl font-bold text-foreground">Products</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage products and emission factor mappings</p>
         </div>
-        <Button onClick={openAdd} className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowBulkUpload(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Bulk Upload
+          </Button>
+          <Button onClick={openAdd} className="bg-primary hover:bg-primary/90">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {pendingCount > 0 && (
@@ -187,6 +195,13 @@ export default function Products() {
         <VersionHistoryModal
           product={historyProduct}
           onClose={() => setShowVersionHistory(false)}
+        />
+      )}
+
+      {showBulkUpload && (
+        <BulkUploadModal
+          onClose={() => setShowBulkUpload(false)}
+          onSynced={load}
         />
       )}
     </div>
