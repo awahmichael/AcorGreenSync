@@ -223,11 +223,11 @@ export default function ProductModal({ product, onClose, onSaved }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">DEFRA Factor (kg CO₂e/unit)</Label>
-                <Input type="number" step="0.0001" value={form.emission_factor_defra} onChange={e => set('emission_factor_defra', e.target.value)} placeholder="0.0000" />
+                <Input type="number" step="0.0001" value={form.emission_factor_defra || ''} readOnly placeholder="Auto-resolved from DEFRA" className="bg-muted text-muted-foreground cursor-not-allowed" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Climatiq Factor (kg CO₂e/unit)</Label>
-                <Input type="number" step="0.0001" value={form.emission_factor_climatiq} onChange={e => set('emission_factor_climatiq', e.target.value)} placeholder="0.0000" />
+                <Input type="number" step="0.0001" value={form.emission_factor_climatiq || ''} readOnly placeholder="Auto-resolved from Climatiq" className="bg-muted text-muted-foreground cursor-not-allowed" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Primary Source</Label>
