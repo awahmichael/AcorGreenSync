@@ -29,6 +29,14 @@
       "type": "string",
       "description": "Optional: limit promotion to a specific product category"
     },
+    "product_id": {
+      "type": "string",
+      "description": "Optional: limit promotion to a specific product (overrides category_filter)"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Display name of the targeted product (for reference)"
+    },
     "min_spend": {
       "type": "number",
       "default": 0,

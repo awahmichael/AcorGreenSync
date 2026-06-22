@@ -108,13 +108,18 @@ export default function POS() {
     if (p.start_date && today < p.start_date) return false;
     if (p.end_date && today > p.end_date) return false;
     if (p.min_spend && cartTotal < p.min_spend) return false;
-    if (p.category_filter && !cart.some(i => i.category === p.category_filter)) return false;
+    if (p.product_id && !cart.some(i => i.product_id === p.product_id)) return false;
+    if (p.category_filter && !p.product_id && !cart.some(i => i.category === p.category_filter)) return false;
     return ['percentage', 'fixed', 'multibuy'].includes(p.type);
   });
 
   const autoDiscount = eligiblePromos.reduce((sum, p) => {
-    if (p.type === 'percentage') return sum + (cartTotal * p.value / 100);
-    if (p.type === 'fixed') return sum + Math.min(p.value, cartTotal);
+    // If product-specific, calculate discount on that product's line total only
+    const baseAmount = p.product_id
+      ? cart.filter(i => i.product_id === p.product_id).reduce((s, i) => s + i.unit_price * i.quantity, 0)
+      : cartTotal;
+    if (p.type === 'percentage') return sum + (baseAmount * p.value / 100);
+    if (p.type === 'fixed') return sum + Math.min(p.value, baseAmount);
     if (p.type === 'multibuy' && cartTotal >= p.value) return sum + (cartTotal * 0.05); // 5% multibuy bonus
     return sum;
   }, 0);
@@ -400,12 +405,20 @@ export default function POS() {
             {/* Discount breakdown */}
             {totalDiscount > 0 && (
               <div className="space-y-1.5 text-sm">
-                {eligiblePromos.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between text-green-600">
-                    <span className="text-xs">↓ {p.name}</span>
-                    <span className="font-medium">-£{p.type === 'percentage' ? (cartTotal * p.value / 100).toFixed(2) : p.type === 'fixed' ? Math.min(p.value, cartTotal).toFixed(2) : '0.00'}</span>
-                  </div>
-                ))}
+                {eligiblePromos.map((p, i) => {
+                  const baseAmount = p.product_id
+                    ? cart.filter(item => item.product_id === p.product_id).reduce((s, i) => s + i.unit_price * i.quantity, 0)
+                    : cartTotal;
+                  const disc = p.type === 'percentage' ? baseAmount * p.value / 100
+                    : p.type === 'fixed' ? Math.min(p.value, baseAmount)
+                    : 0;
+                  return (
+                    <div key={i} className="flex items-center justify-between text-green-600">
+                      <span className="text-xs">↓ {p.name}{p.product_id ? ` (item only)` : ''}</span>
+                      <span className="font-medium">-£{disc.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
                 {appliedPromo && (
                   <div className="flex items-center justify-between text-green-600">
                     <span className="text-xs">↓ {appliedPromo.name}</span>

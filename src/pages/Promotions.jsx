@@ -16,10 +16,11 @@ const TYPE_CONFIG = {
   promo_code: { label: 'Promo Code', icon: Ticket, color: 'text-pink-600 bg-pink-50' },
 };
 
-const BLANK = { name: '', description: '', type: 'percentage', value: '', category_filter: '', min_spend: '', promo_code: '', start_date: new Date().toISOString().split('T')[0], end_date: '', is_active: true };
+const BLANK = { name: '', description: '', type: 'percentage', value: '', category_filter: '', product_id: '', product_name: '', min_spend: '', promo_code: '', start_date: new Date().toISOString().split('T')[0], end_date: '', is_active: true };
 
 export default function Promotions() {
   const [promotions, setPromotions] = useState([]);
+  const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -28,6 +29,7 @@ export default function Promotions() {
 
   useEffect(() => {
     base44.entities.Promotion.list().then(setPromotions).finally(() => setLoading(false));
+    base44.entities.Product.filter({ is_active: true }).then(setProducts).catch(() => {});
   }, []);
 
   const filtered = promotions.filter(p =>
@@ -40,6 +42,15 @@ export default function Promotions() {
     setEditing(p);
     setForm({ ...p, value: String(p.value || ''), min_spend: String(p.min_spend || ''), start_date: (p.start_date || new Date().toISOString().split('T')[0]).split('T')[0], end_date: p.end_date ? p.end_date.split('T')[0] : '' });
     setShowModal(true);
+  };
+
+  const selectProduct = (productId) => {
+    if (!productId) {
+      setForm(f => ({ ...f, product_id: '', product_name: '' }));
+      return;
+    }
+    const product = products.find(p => p.id === productId);
+    setForm(f => ({ ...f, product_id: productId, product_name: product?.name || '', category_filter: '' }));
   };
 
   const save = async () => {
@@ -211,9 +222,21 @@ export default function Promotions() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Category Filter</Label>
-                <Input value={form.category_filter} onChange={e => setForm(f => ({ ...f, category_filter: e.target.value }))} placeholder="e.g. Clothing (optional)" />
+                <Label>Apply To Product</Label>
+                <Select value={form.product_id || 'all'} onValueChange={selectProduct}>
+                  <SelectTrigger><SelectValue placeholder="All products" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All products (no filter)</SelectItem>
+                    {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>Category Filter</Label>
+                <Input value={form.category_filter} onChange={e => setForm(f => ({ ...f, category_filter: e.target.value, product_id: '', product_name: '' }))} placeholder="e.g. Clothing (optional)" disabled={!!form.product_id} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Min Spend (£)</Label>
                 <Input type="number" value={form.min_spend} onChange={e => setForm(f => ({ ...f, min_spend: e.target.value }))} placeholder="0" />
