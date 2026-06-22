@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { exportElementAsPDF, printElement } from '@/lib/reports/exportUtils';
+import { printSlip } from '@/lib/reports/exportUtils';
+import { generateStoreCloseSlipHTML } from '@/lib/reports/storeCloseSlip';
 
 function NotConfigured({ label }) {
   return <div className="text-center py-8 text-muted-foreground text-sm">{label}</div>;
@@ -96,30 +97,40 @@ export default function StoreCloseReports({ data, period, dateRange }) {
       return acc;
     }, {});
 
-  const exportSection = (el, filename, title) => {
-    exportElementAsPDF(el, filename, title, `Store Close — Period: ${periodDays} day(s)`);
-  };
-
-  const printSection = (el, title) => {
-    printElement(el, title, `Store Close — Period: ${periodDays} day(s)`);
-  };
-
-  const SectionWrapper = ({ title, children, sectionId }) => (
-    <div id={sectionId} className="bg-white border border-border rounded-xl p-5 mb-4">
+  const SectionWrapper = ({ title, children }) => (
+    <div className="bg-white border border-border rounded-xl p-5 mb-4">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
         <h3 className="font-bold text-foreground">{title}</h3>
-        <div className="flex gap-1">
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { const el = document.getElementById(sectionId); if (el) printSection(el, title); }}>
-            <Printer className="w-3 h-3 mr-1" /> Print
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { const el = document.getElementById(sectionId); if (el) exportSection(el, `${sectionId}.pdf`, title); }}>
-            <Download className="w-3 h-3 mr-1" /> PDF
-          </Button>
-        </div>
       </div>
       {children}
     </div>
   );
+
+  const periodLabel = periodDays === 1 ? 'Today' : `Last ${periodDays} days`;
+
+  const handlePrintSlip = () => {
+    const slipHTML = generateStoreCloseSlipHTML({
+      periodLabel,
+      storeName: stores[0]?.name || 'All Stores',
+      calculations: {
+        grossSales, totalDiscounts, netSales, totalReturns, totalCOGS, grossProfit,
+        periodTxnsCount: periodTxns.length, totalCO2e,
+        paymentBreakdown, cashSales, cashRefunds,
+        openingFloatTotal: periodShifts.reduce((s, sh) => s + (sh.opening_float || 0), 0),
+        expectedCash: periodShifts.reduce((s, sh) => s + (sh.opening_float || 0), 0) + cashSales - cashRefunds,
+        categorySales, clerkSummary,
+        vatCollected, netOfVat,
+        vatOnReturns: totalReturns - totalReturns / 1.2,
+        netVATPayable: vatCollected - (totalReturns - totalReturns / 1.2),
+        periodReturnsCount: periodReturns.length,
+        carbonReversed: periodReturns.reduce((s, r) => s + (r.carbon_reversal_kg_co2e || 0), 0),
+        discountsByPromo,
+        giftCardIssued, giftCardBalance, totalGiftCards: (giftCards || []).length,
+        hourlySales, shiftSummary,
+      },
+    });
+    printSlip(slipHTML, 'Store Close Slip');
+  };
 
   return (
     <div className="space-y-4">
@@ -128,6 +139,9 @@ export default function StoreCloseReports({ data, period, dateRange }) {
           <h2 className="text-xl font-bold text-foreground">Store Close Reports</h2>
           <p className="text-sm text-muted-foreground">End-of-day reconciliation and close-out reports ({periodDays === 1 ? 'today' : `last ${periodDays} days`})</p>
         </div>
+        <Button onClick={handlePrintSlip} className="bg-primary hover:bg-primary/90">
+          <Printer className="w-4 h-4 mr-2" /> Print Store Close Slip
+        </Button>
       </div>
 
       {/* Z-Report / End of Day Summary */}

@@ -51,6 +51,40 @@ export async function exportElementAsPDF(element, filename, title, subtitle) {
   pdf.save(filename);
 }
 
+export function printSlip(htmlContent, title) {
+  const printWindow = window.open('', '_blank', 'width=380,height=700');
+  if (!printWindow) {
+    alert('Please allow pop-ups to print the slip.');
+    return;
+  }
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        @page { margin: 4mm; size: 80mm auto; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', 'Courier', monospace; font-size: 11px; color: #000; }
+        .slip { width: 72mm; margin: 0 auto; padding: 4mm 0; }
+        @media print { body { width: 80mm; } }
+      </style>
+    </head>
+    <body>
+      <div class="slip">${htmlContent}</div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => printWindow.close(), 300);
+    }, 250);
+  };
+}
+
 export async function printElement(element, title, subtitle) {
   const canvas = await captureElement(element);
   const imgData = canvas.toDataURL('image/png');
