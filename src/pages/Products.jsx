@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProductModal from '@/components/products/ProductModal';
-import CarbonCoefficientUpdater from '@/components/products/CarbonCoefficientUpdater';
+import VersionHistoryModal from '@/components/products/VersionHistoryModal';
 
 const STATUS_STYLE = {
   Mapped: 'bg-green-50 text-green-700 border-green-200',
@@ -20,8 +20,8 @@ export default function Products() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [showCarbonUpdater, setShowCarbonUpdater] = useState(false);
-  const [carbonProduct, setCarbonProduct] = useState(null);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [historyProduct, setHistoryProduct] = useState(null);
   const [filter, setFilter] = useState('all');
 
   const load = () => {
@@ -154,7 +154,7 @@ export default function Products() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => { setCarbonProduct(p); setShowCarbonUpdater(true); }} className="p-1.5 rounded-lg hover:bg-green-50 text-muted-foreground hover:text-primary" title="Update carbon factor (versioned)">
+                      <button onClick={() => { setHistoryProduct(p); setShowVersionHistory(true); }} className="p-1.5 rounded-lg hover:bg-green-50 text-muted-foreground hover:text-primary" title="View version history">
                         <Leaf className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary">
@@ -183,11 +183,10 @@ export default function Products() {
         />
       )}
 
-      {showCarbonUpdater && (
-        <CarbonCoefficientUpdater
-          product={carbonProduct}
-          onClose={() => setShowCarbonUpdater(false)}
-          onSaved={() => { setShowCarbonUpdater(false); load(); }}
+      {showVersionHistory && (
+        <VersionHistoryModal
+          product={historyProduct}
+          onClose={() => setShowVersionHistory(false)}
         />
       )}
     </div>

@@ -20,6 +20,11 @@ export class AcorCloudComplianceEngine {
   /**
    * Non-destructive carbon coefficient update (SCD Type 2).
    * 
+   * SYSTEM-INTERNAL ONLY — CO2e updates are NEVER performed manually by users.
+   * This method is called automatically by the DEFRA auto-sync backend function
+   * (`syncDefraFactors`) when the system detects that a DEFRA emission factor
+   * has changed. The VersionHistoryModal in the UI is read-only.
+   * 
    * Instead of a destructive UPDATE, uses an INSERT-ONLY strategy:
    * 1. Close out the current version (set valid_to, is_current_version=false)
    * 2. Insert a brand new version row with incremented version number
