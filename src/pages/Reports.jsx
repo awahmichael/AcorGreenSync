@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { TrendingUp, Package, Users, UserCog, DollarSign, Tag, Settings, Leaf, Calendar } from 'lucide-react';
+import { TrendingUp, Package, Users, UserCog, DollarSign, Tag, Settings, Leaf, Calendar, FileText, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { exportElementAsPDF, printElement } from '@/lib/reports/exportUtils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SalesReports from '@/components/reports/SalesReports';
 import InventoryReports from '@/components/reports/InventoryReports';
@@ -31,6 +33,8 @@ export default function Reports() {
   const [customEnd, setCustomEnd] = useState('');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({});
+  const [exporting, setExporting] = useState(false);
+  const reportsRef = useRef(null);
 
   const isCustom = period === 'custom';
   const dateRange = isCustom && customStart && customEnd ? { start: customStart, end: customEnd } : null;
@@ -62,6 +66,30 @@ export default function Reports() {
 
   const activeCat = CATEGORIES.find(c => c.id === activeCategory);
   const ActiveComponent = activeCat?.component;
+
+  const periodLabel = isCustom && dateRange
+    ? `${customStart} to ${customEnd}`
+    : period === '7' ? 'Last 7 days' : period === '30' ? 'Last 30 days' : period === '90' ? 'Last 90 days' : period === '365' ? 'Last 12 months' : 'All time';
+
+  const handleExportAllPDF = async () => {
+    if (!reportsRef.current) return;
+    setExporting(true);
+    try {
+      await exportElementAsPDF(reportsRef.current, `${activeCat?.id || 'reports'}-full-report.pdf`, `${activeCat?.label || 'Reports'} — Full Report`, `Period: ${periodLabel}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handlePrintAll = async () => {
+    if (!reportsRef.current) return;
+    setExporting(true);
+    try {
+      await printElement(reportsRef.current, `${activeCat?.label || 'Reports'} — Full Report`, `Period: ${periodLabel}`);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-5">
@@ -101,6 +129,12 @@ export default function Reports() {
               />
             </div>
           )}
+          <Button variant="outline" size="sm" onClick={handlePrintAll} disabled={exporting || loading} className="h-9">
+            <Printer className="w-3.5 h-3.5 mr-1.5" /> Print All
+          </Button>
+          <Button size="sm" onClick={handleExportAllPDF} disabled={exporting || loading} className="h-9">
+            <FileText className="w-3.5 h-3.5 mr-1.5" /> {exporting ? 'Generating...' : 'Export All PDF'}
+          </Button>
         </div>
       </div>
 
@@ -130,7 +164,9 @@ export default function Reports() {
           <div className="w-8 h-8 border-4 border-green-100 border-t-green-600 rounded-full animate-spin"></div>
         </div>
       ) : ActiveComponent ? (
-        <ActiveComponent data={data} period={computedPeriod} dateRange={dateRange} />
+        <div ref={reportsRef}>
+          <ActiveComponent data={data} period={computedPeriod} dateRange={dateRange} />
+        </div>
       ) : null}
     </div>
   );
