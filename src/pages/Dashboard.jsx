@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Leaf, TrendingDown, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight, BarChart2 } from 'lucide-react';
+import { Leaf, TrendingDown, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight, BarChart2, Store } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -8,10 +8,12 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import NetZeroProgress from '@/components/dashboard/NetZeroProgress';
 import SyncStatusBanner from '@/components/dashboard/SyncStatusBanner';
 import BusinessDashboard from '@/components/dashboard/BusinessDashboard';
+import StoreComparison from '@/components/dashboard/StoreComparison';
 
 const TABS = [
   { id: 'business', label: 'Business', icon: BarChart2 },
   { id: 'carbon', label: 'Carbon Reporting', icon: Leaf },
+  { id: 'stores', label: 'Store Comparison', icon: Store },
 ];
 
 export default function Dashboard() {
@@ -20,6 +22,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [carbonTargets, setCarbonTargets] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
   const { queue, syncing, syncQueue, clearQueue } = useOfflineQueue();
@@ -35,11 +38,13 @@ export default function Dashboard() {
       base44.entities.Product.list(),
       base44.entities.CarbonTarget.filter({ is_active: true }),
       base44.entities.Shift.list('-shift_start', 20),
-    ]).then(([txns, prods, targets, shiftData]) => {
+      base44.entities.Store.filter({ is_active: true }),
+    ]).then(([txns, prods, targets, shiftData, storeData]) => {
       setTransactions(txns);
       setProducts(prods);
       setCarbonTargets(targets);
       setShifts(shiftData);
+      setStores(storeData);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -71,7 +76,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {tab === 'business' ? 'Sales performance & operations overview' : 'Scope 3 emissions — UK Net Zero compliance'}
+            {tab === 'business' ? 'Sales performance & operations overview' : tab === 'carbon' ? 'Scope 3 emissions — UK Net Zero compliance' : 'Multi-store carbon & sales performance comparison'}
           </p>
         </div>
         {/* Tab switcher */}
@@ -108,6 +113,11 @@ export default function Dashboard() {
       {/* BUSINESS TAB */}
       {tab === 'business' && (
         <BusinessDashboard transactions={transactions} products={products} shifts={shifts} />
+      )}
+
+      {/* STORE COMPARISON TAB */}
+      {tab === 'stores' && (
+        <StoreComparison transactions={transactions} stores={stores} />
       )}
 
       {/* CARBON TAB */}
