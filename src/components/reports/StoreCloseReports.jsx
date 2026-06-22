@@ -126,7 +126,7 @@ export default function StoreCloseReports({ data, period, dateRange }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground">Store Close Reports</h2>
-          <p className="text-sm text-muted-foreground">QuickBooks POS–style end-of-day reconciliation and close-out reports ({periodDays === 1 ? 'today' : `last ${periodDays} days`})</p>
+          <p className="text-sm text-muted-foreground">End-of-day reconciliation and close-out reports ({periodDays === 1 ? 'today' : `last ${periodDays} days`})</p>
         </div>
       </div>
 
