@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { TrendingUp, Package, Users, UserCog, DollarSign, Tag, Settings, Leaf, Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,10 +24,19 @@ const CATEGORIES = [
 ];
 
 export default function Reports() {
-  const [activeCategory, setActiveCategory] = useState('sales');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = searchParams.get('cat') || 'sales';
   const [period, setPeriod] = useState('30');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({});
+
+  const isCustom = period === 'custom';
+  const dateRange = isCustom && customStart && customEnd ? { start: customStart, end: customEnd } : null;
+  const computedPeriod = isCustom && dateRange
+    ? Math.max(1, Math.ceil((new Date(customEnd) - new Date(customStart)) / (1000 * 60 * 60 * 24)) + 1)
+    : parseInt(period);
 
   useEffect(() => {
     Promise.all([
@@ -60,18 +70,38 @@ export default function Reports() {
           <h1 className="text-2xl font-bold text-foreground">Reports</h1>
           <p className="text-muted-foreground text-sm mt-0.5">82 reports across 8 categories — competitor-parity suite</p>
         </div>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-40">
-            <Calendar className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last 12 months</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-40">
+              <Calendar className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="365">Last 12 months</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+          {isCustom && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <span className="text-muted-foreground text-xs">to</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -80,7 +110,7 @@ export default function Reports() {
           return (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => setSearchParams({ cat: cat.id })}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 activeCategory === cat.id
                   ? 'bg-primary text-primary-foreground'
@@ -100,7 +130,7 @@ export default function Reports() {
           <div className="w-8 h-8 border-4 border-green-100 border-t-green-600 rounded-full animate-spin"></div>
         </div>
       ) : ActiveComponent ? (
-        <ActiveComponent data={data} period={parseInt(period)} />
+        <ActiveComponent data={data} period={computedPeriod} dateRange={dateRange} />
       ) : null}
     </div>
   );

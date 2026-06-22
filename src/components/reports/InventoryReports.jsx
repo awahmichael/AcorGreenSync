@@ -11,9 +11,9 @@ const NotConfigured = ({ msg }) => (
   </div>
 );
 
-export default function InventoryReports({ data, period }) {
+export default function InventoryReports({ data, period, dateRange }) {
   const { products = [], stockMovements = [], transactions = [], suppliers = [], stores = [] } = data;
-  const filteredTxns = filterByPeriod(transactions, period);
+  const filteredTxns = filterByPeriod(transactions, period, 'transaction_date', dateRange);
   const items = flattenItems(filteredTxns);
 
   // Inventory valuation
@@ -39,7 +39,7 @@ export default function InventoryReports({ data, period }) {
   }).filter(s => s.sold > 0 || s.stock > 0).sort((a, b) => b.rate - a.rate).slice(0, 20);
 
   // Stock movements
-  const movements = filterByPeriod(stockMovements, period, 'movement_date');
+  const movements = filterByPeriod(stockMovements, period, 'movement_date', dateRange);
   const movementsByType = groupAndSum(movements, m => m.movement_type, m => m.quantity || 0);
 
   // Inventory by store

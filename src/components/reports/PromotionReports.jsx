@@ -11,9 +11,9 @@ const NotConfigured = ({ msg }) => (
   </div>
 );
 
-export default function PromotionReports({ data, period }) {
+export default function PromotionReports({ data, period, dateRange }) {
   const { promotions = [], transactions = [] } = data;
-  const filtered = filterByPeriod(transactions, period);
+  const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
   const activePromos = promotions.filter(p => p.is_active !== false);
   const totalDiscounts = sum(filtered, 'discount_amount');
 

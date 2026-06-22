@@ -3,9 +3,9 @@ import ReportCard from './ReportCard';
 import ReportTable from './ReportTable';
 import { filterByPeriod, groupBy, groupAndSum, sum, avg, topN, sortByValue, formatCurrency, formatNumber, formatCO2e, exportCSV, CHART_PALETTE } from '@/lib/reports/calculations';
 
-export default function CustomerReports({ data, period }) {
+export default function CustomerReports({ data, period, dateRange }) {
   const { customers = [], transactions = [] } = data;
-  const filtered = filterByPeriod(transactions, period);
+  const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
   const totalCustomers = customers.length;
   const newCustomers = customers.filter(c => (c.transaction_count || 0) <= 1).length;
   const returningCustomers = totalCustomers - newCustomers;

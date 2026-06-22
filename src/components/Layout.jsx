@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
-  Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight,
-  Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw
+  Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight, ChevronDown,
+  Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw,
+  TrendingUp, UserCog, DollarSign
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -34,7 +35,16 @@ const navGroups = [
     label: 'Reporting',
     items: [
       { path: '/returns', label: 'Returns', icon: RotateCcw, roles: ['admin', 'manager', 'user'] },
-      { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'] },
+      { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'], children: [
+        { path: '/reports?cat=sales', label: 'Sales & Revenue', icon: TrendingUp },
+        { path: '/reports?cat=inventory', label: 'Inventory', icon: Package },
+        { path: '/reports?cat=customer', label: 'Customer & CRM', icon: Users },
+        { path: '/reports?cat=staff', label: 'Staff & Employees', icon: UserCog },
+        { path: '/reports?cat=financial', label: 'Financial', icon: DollarSign },
+        { path: '/reports?cat=promotions', label: 'Promotions', icon: Tag },
+        { path: '/reports?cat=operational', label: 'Operational', icon: Settings },
+        { path: '/reports?cat=carbon', label: 'Carbon & Sustainability', icon: Leaf },
+      ] },
       { path: '/compliance', label: 'Compliance', icon: ShieldCheck, roles: ['admin', 'manager'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]
@@ -45,6 +55,7 @@ export default function Layout() {
   const location = useLocation();
   const isOnline = useOnlineStatus();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({});
   const { queue, syncQueue } = useOfflineQueue();
   const { user } = useAuth();
   const userRole = user?.role || 'user';
@@ -57,6 +68,12 @@ export default function Layout() {
       syncQueue();
     }
   }, [isOnline]);
+
+  useEffect(() => {
+    if (location.pathname === '/reports') {
+      setExpandedSections(prev => ({ ...prev, '/reports': true }));
+    }
+  }, [location.pathname]);
 
   return (
     <div className="flex h-screen bg-muted overflow-hidden">
@@ -94,8 +111,55 @@ export default function Layout() {
             <div key={label}>
               <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[hsl(210,20%,45%)]">{label}</div>
               <div className="space-y-0.5">
-                {items.filter(item => canAccess(item.roles)).map(({ path, label: itemLabel, icon: Icon }) => {
+                {items.filter(item => canAccess(item.roles)).map(({ path, label: itemLabel, icon: Icon, children }) => {
                   const active = location.pathname === path;
+                  const hasChildren = children && children.length > 0;
+                  const isExpanded = hasChildren && (expandedSections[path] || active);
+
+                  if (hasChildren) {
+                    return (
+                      <div key={path}>
+                        <button
+                          onClick={() => setExpandedSections(prev => ({ ...prev, [path]: !prev[path] }))}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                            active
+                              ? "bg-primary text-white shadow-sm"
+                              : "text-[hsl(210,20%,70%)] hover:bg-[hsl(220,15%,18%)] hover:text-white"
+                          )}
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {itemLabel}
+                          <ChevronDown className={cn("w-3.5 h-3.5 ml-auto transition-transform", isExpanded && "rotate-180")} />
+                        </button>
+                        {isExpanded && (
+                          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-[hsl(220,15%,22%)] pl-3">
+                            {children.map(({ path: childPath, label: childLabel, icon: ChildIcon }) => {
+                              const currentUrl = location.pathname + location.search;
+                              const childActive = currentUrl === childPath;
+                              return (
+                                <Link
+                                  key={childPath}
+                                  to={childPath}
+                                  onClick={() => setSidebarOpen(false)}
+                                  className={cn(
+                                    "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                                    childActive
+                                      ? "bg-primary/20 text-primary"
+                                      : "text-[hsl(210,20%,60%)] hover:bg-[hsl(220,15%,18%)] hover:text-white"
+                                  )}
+                                >
+                                  <ChildIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                                  {childLabel}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
                       key={path}

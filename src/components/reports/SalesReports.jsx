@@ -11,9 +11,9 @@ const NotConfigured = ({ msg }) => (
   </div>
 );
 
-export default function SalesReports({ data, period }) {
+export default function SalesReports({ data, period, dateRange }) {
   const { transactions, products, suppliers } = data;
-  const filtered = filterByPeriod(transactions, period);
+  const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
   const items = flattenItems(filtered);
 
   const productMap = {}; (products || []).forEach(p => productMap[p.id] = p);

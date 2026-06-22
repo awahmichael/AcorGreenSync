@@ -3,10 +3,10 @@ import ReportCard from './ReportCard';
 import ReportTable from './ReportTable';
 import { filterByPeriod, groupBy, groupAndSum, sum, avg, sortByValue, formatCurrency, formatNumber, exportCSV } from '@/lib/reports/calculations';
 
-export default function StaffReports({ data, period }) {
+export default function StaffReports({ data, period, dateRange }) {
   const { shifts = [], transactions = [] } = data;
-  const filtered = filterByPeriod(transactions, period);
-  const filteredShifts = filterByPeriod(shifts, period, 'shift_start');
+  const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
+  const filteredShifts = filterByPeriod(shifts, period, 'shift_start', dateRange);
 
   // Sales by staff
   const byStaff = groupAndSum(filtered, t => t.cashier_name || 'Unknown', t => t.total_amount);

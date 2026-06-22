@@ -11,10 +11,10 @@ const NotConfigured = ({ msg }) => (
   </div>
 );
 
-export default function FinancialReports({ data, period }) {
+export default function FinancialReports({ data, period, dateRange }) {
   const { transactions = [], shifts = [] } = data;
-  const filtered = filterByPeriod(transactions, period);
-  const filteredShifts = filterByPeriod(shifts, period, 'shift_start');
+  const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
+  const filteredShifts = filterByPeriod(shifts, period, 'shift_start', dateRange);
 
   const grossSales = sum(filtered, t => t.subtotal || t.total_amount);
   const netSales = sum(filtered, 'total_amount');

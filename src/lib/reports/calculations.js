@@ -1,5 +1,16 @@
 // ===== FILTERING =====
-export function filterByPeriod(items, days, dateField = 'transaction_date') {
+export function filterByPeriod(items, days, dateField = 'transaction_date', dateRange = null) {
+  if (dateRange) {
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    end.setHours(23, 59, 59, 999);
+    return items.filter(item => {
+      const d = item[dateField] || item.created_date;
+      if (!d) return false;
+      const date = new Date(d);
+      return date >= start && date <= end;
+    });
+  }
   if (!days || days === 0) return items;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);

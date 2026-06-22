@@ -11,12 +11,12 @@ const NotConfigured = ({ msg }) => (
   </div>
 );
 
-export default function OperationalReports({ data, period }) {
+export default function OperationalReports({ data, period, dateRange }) {
   const { returns = [], suppliers = [], stockMovements = [], transactions = [], auditLogs = [], stores = [] } = data;
-  const filteredReturns = filterByPeriod(returns, period, 'return_date');
-  const filteredMovements = filterByPeriod(stockMovements, period, 'movement_date');
-  const filteredLogs = filterByPeriod(auditLogs, period, 'performed_at');
-  const filteredTxns = filterByPeriod(transactions, period);
+  const filteredReturns = filterByPeriod(returns, period, 'return_date', dateRange);
+  const filteredMovements = filterByPeriod(stockMovements, period, 'movement_date', dateRange);
+  const filteredLogs = filterByPeriod(auditLogs, period, 'performed_at', dateRange);
+  const filteredTxns = filterByPeriod(transactions, period, 'transaction_date', dateRange);
 
   // Returns
   const totalRefunds = sum(filteredReturns, 'refund_amount');

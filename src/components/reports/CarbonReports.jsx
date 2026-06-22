@@ -13,10 +13,10 @@ const NotConfigured = ({ msg }) => (
 
 const TRANSPORT_FACTORS = { road_hgv: 0.105, road_lgv: 0.183, rail: 0.025, sea: 0.016, air: 0.602 };
 
-export default function CarbonReports({ data, period }) {
+export default function CarbonReports({ data, period, dateRange }) {
   const { transactions = [], products = [], customers = [], suppliers = [], carbonTargets = [], returns = [], emissionFactors = [], auditLogs = [] } = data;
-  const filtered = filterByPeriod(transactions, period);
-  const filteredReturns = filterByPeriod(returns, period, 'return_date');
+  const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
+  const filteredReturns = filterByPeriod(returns, period, 'return_date', dateRange);
   const items = flattenItems(filtered);
 
   const totalCO2e = sum(filtered, 'total_kg_co2e');
