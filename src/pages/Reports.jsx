@@ -69,7 +69,7 @@ export default function Reports() {
 
   const periodLabel = isCustom && dateRange
     ? `${customStart} to ${customEnd}`
-    : period === '7' ? 'Last 7 days' : period === '30' ? 'Last 30 days' : period === '90' ? 'Last 90 days' : period === '365' ? 'Last 12 months' : 'All time';
+    : period === '1' ? 'Today' : period === '7' ? 'Last 7 days' : period === '30' ? 'Last 30 days' : period === '90' ? 'Last 90 days' : period === '365' ? 'Last 12 months' : 'All time';
 
   const handleExportAllPDF = async () => {
     if (!reportsRef.current) return;
@@ -105,6 +105,7 @@ export default function Reports() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="1">Today</SelectItem>
               <SelectItem value="7">Last 7 days</SelectItem>
               <SelectItem value="30">Last 30 days</SelectItem>
               <SelectItem value="90">Last 90 days</SelectItem>
