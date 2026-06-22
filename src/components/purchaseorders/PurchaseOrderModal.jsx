@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Search, Trash2, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PurchaseOrderModal({ onClose, onSaved }) {
@@ -14,6 +14,9 @@ export default function PurchaseOrderModal({ onClose, onSaved }) {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({ supplier_id: '', store_id: '', expected_delivery_date: '', notes: '', shipping_cost: 0, duty_cost: 0, insurance_cost: 0 });
   const [lineItems, setLineItems] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const [searchRef, setSearchRef] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -24,16 +27,56 @@ export default function PurchaseOrderModal({ onClose, onSaved }) {
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
-  const addLineItem = () => setLineItems(prev => [...prev, { product_id: '', product_name: '', quantity_ordered: 1, unit_cost: 0, line_cost: 0 }]);
+  const searchResults = searchTerm.trim().length >= 2
+    ? products.filter(p =>
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.upc || '').includes(searchTerm) ||
+        (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase())
+      ).slice(0, 8)
+    : [];
+
+  const addProductToOrder = (product) => {
+    setLineItems(prev => {
+      const existing = prev.find(i => i.product_id === product.id);
+      if (existing) {
+        // Already on the PO — increment quantity instead of duplicating
+        return prev.map(i => i.product_id === product.id
+          ? { ...i, quantity_ordered: i.quantity_ordered + 1, line_cost: (i.quantity_ordered + 1) * (i.unit_cost || 0) }
+          : i);
+      }
+      return [...prev, {
+        product_id: product.id,
+        product_name: product.name,
+        quantity_ordered: 1,
+        unit_cost: product.cost_price || 0,
+        line_cost: product.cost_price || 0,
+      }];
+    });
+    setSearchTerm('');
+    setShowResults(false);
+    // Refocus search field for continuous scanning
+    setTimeout(() => searchRef?.focus(), 0);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      // If exact UPC/SKU match, add directly (barcode scanner workflow)
+      const exactMatch = products.find(p => p.upc === searchTerm.trim() || (p.sku || '').toLowerCase() === searchTerm.trim().toLowerCase());
+      if (exactMatch) {
+        addProductToOrder(exactMatch);
+        return;
+      }
+      // If only one search result, add it
+      if (searchResults.length === 1) {
+        addProductToOrder(searchResults[0]);
+      }
+    }
+  };
 
   const updateLineItem = (idx, key, val) => {
     setLineItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const updated = { ...item, [key]: val };
-      if (key === 'product_id') {
-        const product = products.find(p => p.id === val);
-        if (product) { updated.product_name = product.name; updated.unit_cost = product.cost_price || 0; }
-      }
       updated.line_cost = (updated.quantity_ordered || 0) * (updated.unit_cost || 0);
       return updated;
     }));
@@ -105,25 +148,76 @@ export default function PurchaseOrderModal({ onClose, onSaved }) {
             </div>
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Line Items</Label>
-              <Button size="sm" variant="outline" onClick={addLineItem}><Plus className="w-3.5 h-3.5 mr-1" />Add Item</Button>
-            </div>
-            {lineItems.map((item, idx) => (
-              <div key={idx} className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Select value={item.product_id} onValueChange={v => updateLineItem(idx, 'product_id', v)}>
-                    <SelectTrigger className="h-8"><SelectValue placeholder="Select product" /></SelectTrigger>
-                    <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                  </Select>
+            <Label>Search or Scan Items</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                ref={setSearchRef}
+                placeholder="Type product name or scan barcode/UPC, then press Enter..."
+                value={searchTerm}
+                onChange={e => { setSearchTerm(e.target.value); setShowResults(true); }}
+                onKeyDown={handleSearchKeyDown}
+                onFocus={() => setShowResults(true)}
+                onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                className="pl-9 pr-9"
+              />
+              <ScanLine className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
+              {showResults && searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
+                  {searchResults.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={() => addProductToOrder(p)}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 border-b border-border last:border-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{p.name}</div>
+                          <div className="text-xs text-muted-foreground">{p.category} · {p.upc || p.sku || 'No code'}</div>
+                        </div>
+                        <div className="text-sm font-semibold text-muted-foreground">£{(p.cost_price || 0).toFixed(2)}</div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <Input type="number" min="1" value={item.quantity_ordered} onChange={e => updateLineItem(idx, 'quantity_ordered', parseInt(e.target.value) || 0)} className="w-20 h-8" placeholder="Qty" />
-                <Input type="number" step="0.01" value={item.unit_cost} onChange={e => updateLineItem(idx, 'unit_cost', parseFloat(e.target.value) || 0)} className="w-24 h-8" placeholder="Unit Cost" />
-                <div className="w-24 text-right text-sm font-medium pb-1.5">£{(item.line_cost || 0).toFixed(2)}</div>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeLineItem(idx)}><Trash2 className="w-3.5 h-3.5" /></Button>
+              )}
+            </div>
+            {lineItems.length > 0 && (
+              <div className="border border-border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted/50 border-b border-border">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">Product</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground">Qty</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground">Unit Cost</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground">Line Cost</th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {lineItems.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2">
+                          <div className="text-sm font-medium text-foreground">{item.product_name}</div>
+                          <div className="text-xs text-muted-foreground">In stock: {products.find(p => p.id === item.product_id)?.stock_quantity || 0}</div>
+                        </td>
+                        <td className="px-3 py-2 text-right"><Input type="number" min="1" value={item.quantity_ordered} onChange={e => updateLineItem(idx, 'quantity_ordered', parseInt(e.target.value) || 0)} className="w-16 h-8 text-right ml-auto" /></td>
+                        <td className="px-3 py-2 text-right"><Input type="number" step="0.01" value={item.unit_cost} onChange={e => updateLineItem(idx, 'unit_cost', parseFloat(e.target.value) || 0)} className="w-20 h-8 text-right ml-auto" /></td>
+                        <td className="px-3 py-2 text-right text-sm font-medium">£{(item.line_cost || 0).toFixed(2)}</td>
+                        <td className="px-3 py-2 text-center"><button onClick={() => removeLineItem(idx)} className="text-destructive hover:bg-destructive/10 p-1 rounded"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-            {lineItems.length === 0 && <p className="text-xs text-muted-foreground py-2">No items added yet.</p>}
+            )}
+            {lineItems.length === 0 && (
+              <div className="text-center py-8 border border-dashed border-border rounded-lg">
+                <ScanLine className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">Search or scan items to add them to this order</p>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-3 pt-2 border-t">
             <div className="space-y-1"><Label className="text-xs">Shipping (£)</Label><Input type="number" step="0.01" value={form.shipping_cost} onChange={e => set('shipping_cost', e.target.value)} /></div>
