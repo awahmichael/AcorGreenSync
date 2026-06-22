@@ -70,6 +70,7 @@ export function createTransaction(data) {
     cashier_id: data.cashier_id || '',
     cashier_name: data.cashier_name || '',
     total_amount: Number(data.total_amount) || 0,
+    total_kg_co2e: Number(data.total_kg_co2e ?? data.total_carbon_footprint) || 0,
     total_carbon_footprint: Number(data.total_kg_co2e ?? data.total_carbon_footprint) || 0,
     upstream_kg_co2e: Number(data.upstream_kg_co2e) || 0,
     downstream_kg_co2e: Number(data.downstream_kg_co2e) || 0,
