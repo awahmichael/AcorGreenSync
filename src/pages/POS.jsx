@@ -60,6 +60,7 @@ export default function POS() {
         emission_factor_source: product.emission_factor_source || 'Pending',
         kg_co2e: product.emission_factor_defra || product.emission_factor_climatiq || 0,
         scope3_category: product.scope3_category || 'Both',
+        _productData: product,
       }];
     });
   };
