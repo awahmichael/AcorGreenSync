@@ -96,14 +96,6 @@ export default function Receipt({ transaction }) {
           <span>Total CO2e</span>
           <span>{formatCO2e(totalCO2e)}</span>
         </div>
-        <div className="flex justify-between">
-          <span>Upstream (Cat 1)</span>
-          <span>{formatCO2e(upstream)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Downstream (Cat 11)</span>
-          <span>{formatCO2e(downstream)}</span>
-        </div>
       </div>
 
       <div className="border-t border-dashed border-gray-500 my-2" />
