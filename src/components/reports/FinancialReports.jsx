@@ -12,9 +12,13 @@ const NotConfigured = ({ msg }) => (
 );
 
 export default function FinancialReports({ data, period, dateRange }) {
-  const { transactions = [], shifts = [] } = data;
+  const { transactions = [], shifts = [], products = [] } = data;
   const filtered = filterByPeriod(transactions, period, 'transaction_date', dateRange);
   const filteredShifts = filterByPeriod(shifts, period, 'shift_start', dateRange);
+
+  // Build product lookup for cost price fallback on legacy transactions
+  const productCostMap = {};
+  (products || []).forEach(p => { productCostMap[p.id] = p.cost_price || 0; });
 
   const grossSales = sum(filtered, t => t.subtotal || t.total_amount);
   const netSales = sum(filtered, 'total_amount');
@@ -38,29 +42,36 @@ export default function FinancialReports({ data, period, dateRange }) {
     revenue: s.total_revenue || 0,
   }));
 
-  // Gross margin (estimated COGS at 60% of price for framework)
-  const cogsRate = 0.6;
-  const estimatedCOGS = grossSales * cogsRate;
-  const grossProfit = grossSales - estimatedCOGS;
+  // COGS: use actual cost prices locked on each transaction line item.
+  // Falls back to product cost_price for legacy transactions without unit_cost.
+  const allItems = [];
+  let actualCOGS = 0;
+  filtered.forEach(t => {
+    (t.items || []).forEach(item => {
+      const unitCost = item.unit_cost ?? productCostMap[item.product_id] ?? 0;
+      const lineCost = unitCost * (item.quantity || 0);
+      actualCOGS += lineCost;
+      allItems.push({ ...item, unit_cost: unitCost, line_cost: lineCost });
+    });
+  });
+
+  const grossProfit = grossSales - actualCOGS;
   const grossMargin = grossSales > 0 ? (grossProfit / grossSales) * 100 : 0;
 
   // P&L summary
-  const totalExpenses = estimatedCOGS + totalDiscounts;
+  const totalExpenses = actualCOGS + totalDiscounts;
   const netProfit = grossSales - totalExpenses;
 
-  // Items for product/category profit
-  const allItems = [];
-  filtered.forEach(t => (t.items || []).forEach(item => allItems.push({ ...item })));
-  const profitByProduct = topN(groupAndSum(allItems, i => i.product_name || 'Unknown', i => (i.unit_price || 0) * (i.quantity || 0) * (1 - cogsRate)), 20, d => d.value);
-  const profitByCategory = groupAndSum(allItems, i => i.category || 'Uncategorized', i => (i.unit_price || 0) * (i.quantity || 0) * (1 - cogsRate));
+  const profitByProduct = topN(groupAndSum(allItems, i => i.product_name || 'Unknown', i => ((i.unit_price || 0) * (i.quantity || 0)) - (i.line_cost || 0)), 20, d => d.value);
+  const profitByCategory = groupAndSum(allItems, i => i.category || 'Uncategorized', i => ((i.unit_price || 0) * (i.quantity || 0)) - (i.line_cost || 0));
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Net Sales', value: formatCurrency(netSales), sub: 'after discounts' },
+          { label: 'COGS', value: formatCurrency(actualCOGS), sub: 'actual cost prices' },
           { label: 'Gross Profit', value: formatCurrency(grossProfit), sub: `${grossMargin.toFixed(1)}% margin` },
-          { label: 'VAT Liability', value: formatCurrency(vatEstimate), sub: 'estimated 20%' },
           { label: 'Net Profit', value: formatCurrency(netProfit), sub: 'after COGS & discounts' },
         ].map(k => (
           <div key={k.label} className="bg-white rounded-xl border border-border p-4">
@@ -77,11 +88,11 @@ export default function FinancialReports({ data, period, dateRange }) {
       </ReportCard>
 
       {/* P&L / Gross Margin */}
-      <ReportCard title="Profit & Loss / Gross Margin" description="Revenue minus estimated COGS (60% cost rate)" onExport={() => exportCSV('pnl.csv', ['Line Item', 'Amount'], [['Gross Sales', grossSales.toFixed(2)], ['Discounts', totalDiscounts.toFixed(2)], ['COGS (60%)', estimatedCOGS.toFixed(2)], ['Gross Profit', grossProfit.toFixed(2)], ['Net Profit', netProfit.toFixed(2)]])}>
+      <ReportCard title="Profit & Loss / Gross Margin" description="Revenue minus actual COGS from cost prices" onExport={() => exportCSV('pnl.csv', ['Line Item', 'Amount'], [['Gross Sales', grossSales.toFixed(2)], ['Discounts', totalDiscounts.toFixed(2)], ['COGS (actual)', actualCOGS.toFixed(2)], ['Gross Profit', grossProfit.toFixed(2)], ['Net Profit', netProfit.toFixed(2)]])}>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Gross Sales</span><span className="font-medium">{formatCurrency(grossSales)}</span></div>
           <div className="flex justify-between text-red-600"><span>Less: Discounts</span><span>-{formatCurrency(totalDiscounts)}</span></div>
-          <div className="flex justify-between text-red-600"><span>Less: COGS (est. 60%)</span><span>-{formatCurrency(estimatedCOGS)}</span></div>
+          <div className="flex justify-between text-red-600"><span>Less: COGS (actual)</span><span>-{formatCurrency(actualCOGS)}</span></div>
           <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">Gross Profit</span><span className="font-bold text-primary">{formatCurrency(grossProfit)}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Gross Margin</span><span className="font-bold text-primary">{grossMargin.toFixed(1)}%</span></div>
         </div>
@@ -89,8 +100,8 @@ export default function FinancialReports({ data, period, dateRange }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Gross Profit by Product */}
-        <ReportCard title="Gross Profit by Product" description="Margin per item (est. 40% margin)" onExport={() => exportCSV('profit-by-product.csv', ['Product', 'Profit'], profitByProduct.map(d => [d.key, d.value.toFixed(2)]))}>
-          <ReportTable headers={['Product', 'Est. Profit']} rows={profitByProduct.map(d => [d.key, formatCurrency(d.value)])} maxHeight="250px" />
+        <ReportCard title="Gross Profit by Product" description="Margin per item (revenue minus actual cost)" onExport={() => exportCSV('profit-by-product.csv', ['Product', 'Profit'], profitByProduct.map(d => [d.key, d.value.toFixed(2)]))}>
+          <ReportTable headers={['Product', 'Profit']} rows={profitByProduct.map(d => [d.key, formatCurrency(d.value)])} maxHeight="250px" />
         </ReportCard>
 
         {/* Gross Profit by Category */}
@@ -110,13 +121,13 @@ export default function FinancialReports({ data, period, dateRange }) {
       </div>
 
       {/* VAT Return Summary */}
-      <ReportCard title="VAT Return Summary" description="HMRC MTD-ready output (estimated 20% standard rate)" onExport={() => exportCSV('vat-return.csv', ['Box', 'Description', 'Amount'], [['1', 'VAT due on outputs', vatEstimate.toFixed(2)], ['6', 'VAT due on inputs (est.)', (vatEstimate * 0.4).toFixed(2)], ['5', 'Net VAT due', (vatEstimate * 0.6).toFixed(2)], ['7', 'Total sales (excl. VAT)', netSales.toFixed(2)], ['9', 'Total purchases (excl. VAT)', (netSales * 0.6).toFixed(2)]])}>
+      <ReportCard title="VAT Return Summary" description="HMRC MTD-ready output (estimated 20% standard rate)" onExport={() => exportCSV('vat-return.csv', ['Box', 'Description', 'Amount'], [['1', 'VAT due on outputs', vatEstimate.toFixed(2)], ['6', 'VAT due on inputs (est.)', (vatEstimate * 0.4).toFixed(2)], ['5', 'Net VAT due', (vatEstimate * 0.6).toFixed(2)], ['7', 'Total sales (excl. VAT)', netSales.toFixed(2)], ['9', 'Total purchases (excl. VAT)', actualCOGS.toFixed(2)]])}>
         <ReportTable headers={['Box', 'Description', 'Amount']} rows={[
           ['1', 'VAT due on outputs (sales)', formatCurrency(vatEstimate)],
           ['6', 'VAT due on inputs (est. 40% reclaim)', formatCurrency(vatEstimate * 0.4)],
           ['5', 'Net VAT due to HMRC', formatCurrency(vatEstimate * 0.6)],
           ['7', 'Total sales (excl. VAT)', formatCurrency(netSales)],
-          ['9', 'Total purchases (excl. VAT, est.)', formatCurrency(netSales * 0.6)],
+          ['9', 'Total purchases (excl. VAT, COGS)', formatCurrency(actualCOGS)],
         ]} />
       </ReportCard>
 

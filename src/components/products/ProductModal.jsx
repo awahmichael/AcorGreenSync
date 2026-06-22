@@ -21,6 +21,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
     upc: product?.upc || '',
     category: product?.category || '',
     price: product?.price || '',
+    cost_price: product?.cost_price || '',
     unit: product?.unit || 'unit',
     emission_factor_defra: product?.emission_factor_defra || '',
     emission_factor_climatiq: product?.emission_factor_climatiq || '',
@@ -73,6 +74,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
     const data = {
       ...form,
       price: parseFloat(form.price) || 0,
+      cost_price: parseFloat(form.cost_price) || 0,
       emission_factor_defra: parseFloat(form.emission_factor_defra) || null,
       emission_factor_climatiq: parseFloat(form.emission_factor_climatiq) || null,
       stock_quantity: parseInt(form.stock_quantity) || 0,
@@ -121,7 +123,17 @@ export default function ProductModal({ product, onClose, onSaved }) {
             </div>
             <div className="space-y-1.5">
               <Label>Price (£) *</Label>
-              <Input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Cost Price (£)</Label>
+              <Input type="number" step="0.01" value={form.cost_price} onChange={e => set('cost_price', e.target.value)} placeholder="0.00" />
+              {form.price && form.cost_price && (
+                <p className="text-xs text-primary">
+                  Margin: {(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}%
+                  {' · '}£{(parseFloat(form.price) - parseFloat(form.cost_price)).toFixed(2)}/unit
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Category *</Label>

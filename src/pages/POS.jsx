@@ -61,6 +61,7 @@ export default function POS() {
         category: product.category,
         quantity: 1,
         unit_price: product.price,
+        unit_cost: product.cost_price || 0,
         unit: product.unit || 'unit',
         emission_factor: product.emission_factor_defra || product.emission_factor_climatiq || 0,
         emission_factor_source: product.emission_factor_source || 'Pending',

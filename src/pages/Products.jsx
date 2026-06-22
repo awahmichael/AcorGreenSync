@@ -114,6 +114,8 @@ export default function Products() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Product</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Category</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cost</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Margin</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">kg CO₂e/unit</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Source</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
@@ -125,7 +127,7 @@ export default function Products() {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={8} className="px-4 py-3">
+                    <td colSpan={10} className="px-4 py-3">
                       <div className="h-4 bg-muted rounded animate-pulse" />
                     </td>
                   </tr>
@@ -138,6 +140,14 @@ export default function Products() {
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{p.category || '—'}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-right">£{(p.price || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground text-right">£{(p.cost_price || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right">
+                    {p.price > 0 ? (
+                      <span className={`text-xs font-medium ${p.cost_price > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {p.cost_price > 0 ? `${(((p.price - p.cost_price) / p.price) * 100).toFixed(0)}%` : '—'}
+                      </span>
+                    ) : '—'}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1 text-sm">
                       <Leaf className="w-3 h-3 text-primary" />

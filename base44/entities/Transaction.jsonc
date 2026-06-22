@@ -49,6 +49,14 @@
           "unit_price": {
             "type": "number"
           },
+          "unit_cost": {
+            "type": "number",
+            "description": "Cost price locked in at moment of sale (COGS audit lock)"
+          },
+          "line_cost": {
+            "type": "number",
+            "description": "unit_cost x quantity"
+          },
           "unit": {
             "type": "string"
           },
@@ -91,6 +99,10 @@
     "total_amount": {
       "type": "number",
       "description": "Final total after discounts"
+    },
+    "total_cogs": {
+      "type": "number",
+      "description": "Total cost of goods sold for this transaction"
     },
     "total_kg_co2e": {
       "type": "number"

@@ -16,13 +16,14 @@ export default function InventoryReports({ data, period, dateRange }) {
   const filteredTxns = filterByPeriod(transactions, period, 'transaction_date', dateRange);
   const items = flattenItems(filteredTxns);
 
-  // Inventory valuation
-  const totalValue = sum(products, p => (p.stock_quantity || 0) * (p.price || 0));
+  // Inventory valuation — at cost price (true inventory asset value)
+  const totalCostValue = sum(products, p => (p.stock_quantity || 0) * (p.cost_price || 0));
+  const totalRetailValue = sum(products, p => (p.stock_quantity || 0) * (p.price || 0));
   const totalUnits = sum(products, p => p.stock_quantity || 0);
   const activeProducts = products.filter(p => p.is_active !== false);
 
   // Stock on hand
-  const stockOnHand = sortByValue(products.map(p => ({ ...p, value: p.stock_quantity || 0 })), p => p.value).slice(0, 50);
+  const stockOnHand = sortByValue(products.map(p => ({ ...p, value: (p.stock_quantity || 0) * (p.cost_price || 0) })), p => p.value).slice(0, 50);
 
   // Low stock
   const lowStock = products.filter(p => (p.stock_quantity || 0) <= 5 && p.is_active !== false).sort((a, b) => (a.stock_quantity || 0) - (b.stock_quantity || 0));
@@ -46,16 +47,16 @@ export default function InventoryReports({ data, period, dateRange }) {
   const byStore = groupAndSum(products, p => {
     const store = stores.find(s => s.id === p.store_id);
     return store?.name || 'Unassigned';
-  }, p => (p.stock_quantity || 0) * (p.price || 0));
+  }, p => (p.stock_quantity || 0) * (p.cost_price || 0));
 
   // Inventory by vendor
   const byVendor = groupAndSum(products, p => {
     const supplier = suppliers.find(s => s.id === p.supplier_id);
     return supplier?.name || 'Unknown';
-  }, p => (p.stock_quantity || 0) * (p.price || 0));
+  }, p => (p.stock_quantity || 0) * (p.cost_price || 0));
 
-  // ABC Analysis
-  const sortedByValue = sortByValue(products.map(p => ({ name: p.name, value: (p.stock_quantity || 0) * (p.price || 0) })), p => p.value);
+  // ABC Analysis (by cost value)
+  const sortedByValue = sortByValue(products.map(p => ({ name: p.name, value: (p.stock_quantity || 0) * (p.cost_price || 0) })), p => p.value);
   const totalInvValue = sum(sortedByValue, p => p.value);
   let cumulative = 0;
   const abcData = sortedByValue.map(p => {
@@ -86,9 +87,10 @@ export default function InventoryReports({ data, period, dateRange }) {
   return (
     <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Inventory Value', value: formatCurrency(totalValue), sub: `${formatNumber(products.length)} products` },
+          { label: 'Inventory Value (at cost)', value: formatCurrency(totalCostValue), sub: `${formatNumber(products.length)} products` },
+          { label: 'Retail Value', value: formatCurrency(totalRetailValue), sub: 'if all sold at retail' },
           { label: 'Total Units in Stock', value: formatNumber(totalUnits), sub: 'across all stores' },
           { label: 'Low Stock Items', value: lowStock.length, sub: '≤ 5 units remaining' },
           { label: 'Dusty Inventory', value: dusty.length, sub: 'no sales this period' },
@@ -103,7 +105,7 @@ export default function InventoryReports({ data, period, dateRange }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Inventory Valuation */}
-        <ReportCard title="Inventory Valuation" description="Stock-at-cost across all stores" onExport={() => exportCSV('inventory-valuation.csv', ['Metric', 'Value'], [['Total Value', totalValue.toFixed(2)], ['Total Units', totalUnits], ['Product Count', products.length]])}>
+        <ReportCard title="Inventory Valuation" description="Stock-at-cost across all stores" onExport={() => exportCSV('inventory-valuation.csv', ['Metric', 'Value'], [['Total Cost Value', totalCostValue.toFixed(2)], ['Total Retail Value', totalRetailValue.toFixed(2)], ['Total Units', totalUnits], ['Product Count', products.length]])}>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={abcSummary.map(s => ({ class: `Class ${s.class}`, Value: s.value, Items: s.count }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -122,8 +124,8 @@ export default function InventoryReports({ data, period, dateRange }) {
       </div>
 
       {/* Stock On Hand */}
-      <ReportCard title="Stock On Hand" description="Current quantity per product (top 50)" onExport={() => exportCSV('stock-on-hand.csv', ['Product', 'SKU', 'Stock', 'Value'], stockOnHand.map(p => [p.name, p.sku || '', p.stock_quantity || 0, ((p.stock_quantity || 0) * (p.price || 0)).toFixed(2)]))}>
-        <ReportTable headers={['Product', 'Stock', 'Unit Price', 'Value']} rows={stockOnHand.map(p => [p.name, formatNumber(p.stock_quantity || 0), formatCurrency(p.price), formatCurrency((p.stock_quantity || 0) * (p.price || 0))])} maxHeight="300px" />
+      <ReportCard title="Stock On Hand" description="Current quantity per product (top 50 by cost value)" onExport={() => exportCSV('stock-on-hand.csv', ['Product', 'SKU', 'Stock', 'Unit Cost', 'Cost Value'], stockOnHand.map(p => [p.name, p.sku || '', p.stock_quantity || 0, (p.cost_price || 0).toFixed(2), ((p.stock_quantity || 0) * (p.cost_price || 0)).toFixed(2)]))}>
+        <ReportTable headers={['Product', 'Stock', 'Unit Cost', 'Cost Value']} rows={stockOnHand.map(p => [p.name, formatNumber(p.stock_quantity || 0), formatCurrency(p.cost_price), formatCurrency((p.stock_quantity || 0) * (p.cost_price || 0))])} maxHeight="300px" />
       </ReportCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -144,8 +146,8 @@ export default function InventoryReports({ data, period, dateRange }) {
       </ReportCard>
 
       {/* Dusty Inventory */}
-      <ReportCard title="Dusty Inventory / Dead Stock" description="Products with stock but no sales this period" onExport={() => exportCSV('dusty-inventory.csv', ['Product', 'Stock', 'Value'], dusty.map(p => [p.name, p.stock_quantity || 0, ((p.stock_quantity || 0) * (p.price || 0)).toFixed(2)]))}>
-        <ReportTable headers={['Product', 'Stock', 'Tied-Up Value']} rows={dusty.map(p => [p.name, formatNumber(p.stock_quantity || 0), formatCurrency((p.stock_quantity || 0) * (p.price || 0))])} maxHeight="250px" />
+      <ReportCard title="Dusty Inventory / Dead Stock" description="Products with stock but no sales this period" onExport={() => exportCSV('dusty-inventory.csv', ['Product', 'Stock', 'Cost Value'], dusty.map(p => [p.name, p.stock_quantity || 0, ((p.stock_quantity || 0) * (p.cost_price || 0)).toFixed(2)]))}>
+        <ReportTable headers={['Product', 'Stock', 'Tied-Up Cost']} rows={dusty.map(p => [p.name, formatNumber(p.stock_quantity || 0), formatCurrency((p.stock_quantity || 0) * (p.cost_price || 0))])} maxHeight="250px" />
       </ReportCard>
 
       {/* Stock Movement History */}

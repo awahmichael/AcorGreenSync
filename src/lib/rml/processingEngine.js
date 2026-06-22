@@ -37,6 +37,7 @@ export class ProcessingEngine {
    */
   async executeCheckout(locationId, cart, options = {}) {
     let totalAmount = 0;
+    let totalCogs = 0;
     let totalCarbonFootprint = 0;
     let upstreamCO2e = 0;
     let downstreamCO2e = 0;
@@ -75,8 +76,10 @@ export class ProcessingEngine {
       // The carbon coefficient is locked from the EXACT version active at this moment
       const carbonCoefficient =
         skuProfile.carbon_coefficient ?? skuProfile.emission_factor_defra ?? skuProfile.emission_factor_climatiq ?? 0;
+      const unitCost = Number(skuProfile.cost_price ?? item.unit_cost ?? 0) || 0;
       const calcPrice = (skuProfile.price || 0) * item.quantity;
       const calcCarbon = item.quantity * carbonCoefficient;
+      const lineCost = unitCost * item.quantity;
 
       // CRITICAL: Determine the product version for audit lock
       // This permanently binds the line item to the exact carbon data active at sale time
@@ -84,6 +87,7 @@ export class ProcessingEngine {
       const baseProductId = skuProfile.base_product_id || skuProfile.sku_id || item.product_id;
 
       totalAmount += calcPrice;
+      totalCogs += lineCost;
       totalCarbonFootprint += calcCarbon;
 
       // Scope 3 split: upstream (Cat 1) vs downstream (Cat 11)
@@ -108,6 +112,8 @@ export class ProcessingEngine {
         category: skuProfile.category_id || skuProfile.category || item.category,
         quantity: item.quantity,
         unit_price: skuProfile.price || item.unit_price,
+        unit_cost: unitCost,
+        line_cost: lineCost,
         line_price: calcPrice,
         unit: skuProfile.unit || item.unit || 'unit',
         emission_factor: carbonCoefficient,
@@ -143,6 +149,7 @@ export class ProcessingEngine {
       discount_amount: discountAmount,
       applied_promotions: Array.isArray(options.applied_promotions) ? options.applied_promotions.join(', ') : (options.applied_promotions || ''),
       total_amount: finalTotal,
+      total_cogs: totalCogs,
       total_kg_co2e: totalCarbonFootprint,
       total_carbon_footprint: totalCarbonFootprint,
       upstream_kg_co2e: upstreamCO2e,

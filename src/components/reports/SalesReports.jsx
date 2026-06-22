@@ -17,6 +17,7 @@ export default function SalesReports({ data, period, dateRange }) {
   const items = flattenItems(filtered);
 
   const productMap = {}; (products || []).forEach(p => productMap[p.id] = p);
+  const productCostMap = {}; (products || []).forEach(p => { productCostMap[p.id] = p.cost_price || 0; });
   const supplierMap = {}; (suppliers || []).forEach(s => supplierMap[s.id] = s.name);
 
   const grossSales = sum(filtered, t => t.subtotal || t.total_amount);
@@ -169,8 +170,20 @@ export default function SalesReports({ data, period, dateRange }) {
       </div>
 
       {/* Sales by Product */}
-      <ReportCard title="Sales by Product" description="Full product-level revenue breakdown" onExport={() => exportCSV('sales-by-product.csv', ['Product', 'Revenue', 'Transactions'], byProduct.map(d => [d.key, d.value.toFixed(2), d.count]))}>
-        <ReportTable headers={['Product', 'Revenue', 'Txns']} rows={byProduct.map(d => [d.key, formatCurrency(d.value), d.count])} maxHeight="300px" />
+      <ReportCard title="Sales by Product" description="Full product-level revenue and margin breakdown" onExport={() => exportCSV('sales-by-product.csv', ['Product', 'Revenue', 'COGS', 'Profit', 'Margin %', 'Transactions'], byProduct.map(d => {
+        const prodItems = items.filter(i => i.product_name === d.key);
+        const cogs = prodItems.reduce((s, i) => s + ((i.unit_cost ?? productCostMap[i.product_id] ?? 0) * (i.quantity || 0)), 0);
+        const profit = d.value - cogs;
+        const margin = d.value > 0 ? (profit / d.value) * 100 : 0;
+        return [d.key, d.value.toFixed(2), cogs.toFixed(2), profit.toFixed(2), margin.toFixed(1), d.count];
+      }))}>
+        <ReportTable headers={['Product', 'Revenue', 'COGS', 'Margin']} rows={byProduct.map(d => {
+          const prodItems = items.filter(i => i.product_name === d.key);
+          const cogs = prodItems.reduce((s, i) => s + ((i.unit_cost ?? productCostMap[i.product_id] ?? 0) * (i.quantity || 0)), 0);
+          const profit = d.value - cogs;
+          const margin = d.value > 0 ? (profit / d.value) * 100 : 0;
+          return [d.key, formatCurrency(d.value), formatCurrency(cogs), `${margin.toFixed(0)}%`];
+        })} maxHeight="300px" />
       </ReportCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
