@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { useRml } from '@/hooks/useRml';
 import { toast } from 'sonner';
 import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
@@ -20,9 +21,14 @@ export default function POS() {
   const [lastScanned, setLastScanned] = useState(null);
   const isOnline = useOnlineStatus();
   const { addToQueue } = useOfflineQueue();
+  const { processingEngine, syncCoordinator, refreshCache } = useRml();
 
   useEffect(() => {
-    base44.entities.Product.filter({ is_active: true }).then(setProducts).finally(() => setLoading(false));
+    base44.entities.Product.filter({ is_active: true }).then(async (prods) => {
+      setProducts(prods);
+      // Cache products into RML local IndexedDB for offline checkout
+      await refreshCache();
+    }).finally(() => setLoading(false));
   }, []);
 
   const filteredProducts = products.filter(p =>
@@ -87,45 +93,49 @@ export default function POS() {
 
   const processTransaction = async (paymentMethod) => {
     const txRef = `TXN-${Date.now()}`;
-    const transaction = {
-      transaction_ref: txRef,
-      store_name: 'Main Store',
-      cashier_name: 'Cashier',
-      items: cart.map(i => ({ ...i, kg_co2e: i.kg_co2e * i.quantity })),
-      total_amount: cartTotal,
-      total_kg_co2e: cartCO2e,
-      upstream_kg_co2e: upstreamCO2e,
-      downstream_kg_co2e: downstreamCO2e,
-      payment_method: paymentMethod,
-      transaction_date: new Date().toISOString(),
-      recorded_offline: !isOnline,
-      sync_status: isOnline ? 'synced' : 'pending_sync',
-    };
 
-    if (isOnline) {
-      await base44.entities.Transaction.create(transaction);
+    try {
+      // RML Module 4: ProcessingEngine executes checkout — calculates carbon,
+      // validates stock, deducts local inventory, writes atomic ledger to IndexedDB
+      const transaction = await processingEngine.executeCheckout('main-store', cart, {
+        transaction_ref: txRef,
+        store_name: 'Main Store',
+        cashier_name: 'Cashier',
+        payment_method: paymentMethod,
+        online: isOnline,
+      });
 
-      // Deduct stock for each cart item
-      await Promise.allSettled(
-        cart.map(item => {
-          const product = products.find(p => p.id === item.product_id);
-          if (!product) return Promise.resolve();
-          const newQty = Math.max(0, (product.stock_quantity || 0) - item.quantity);
-          return base44.entities.Product.update(item.product_id, { stock_quantity: newQty });
-        })
-      );
+      if (isOnline) {
+        // RML Module 5: SyncCoordinator dispatches to Base44 cloud (idempotent)
+        await syncCoordinator.dispatchSingle(transaction);
 
-      // Update local products state to reflect new stock
-      setProducts(prev => prev.map(p => {
-        const cartItem = cart.find(i => i.product_id === p.id);
-        if (!cartItem) return p;
-        return { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - cartItem.quantity) };
-      }));
+        // Deduct stock on cloud Product entities
+        await Promise.allSettled(
+          cart.map(item => {
+            const product = products.find(p => p.id === item.product_id);
+            if (!product) return Promise.resolve();
+            const newQty = Math.max(0, (product.stock_quantity || 0) - item.quantity);
+            return base44.entities.Product.update(item.product_id, { stock_quantity: newQty });
+          })
+        );
 
-      toast.success('Transaction complete!');
-    } else {
-      addToQueue(transaction);
-      toast.success('Saved offline — will sync when connected', { icon: '📶' });
+        // Update local products state to reflect new stock
+        setProducts(prev => prev.map(p => {
+          const cartItem = cart.find(i => i.product_id === p.id);
+          if (!cartItem) return p;
+          return { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - cartItem.quantity) };
+        }));
+
+        toast.success('Transaction complete!');
+      } else {
+        // Transaction already written to IndexedDB with PENDING status by ProcessingEngine
+        // Also add to the legacy queue for UI sync banner
+        await addToQueue(transaction);
+        toast.success('Saved offline — will sync when connected', { icon: '📶' });
+      }
+    } catch (err) {
+      toast.error(`Checkout failed: ${err.message}`);
+      return;
     }
 
     setCart([]);

@@ -1,85 +1,74 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { syncCoordinator, localDB, SyncStatus } from '@/lib/rml';
 
-const QUEUE_KEY = 'acorcloud_offline_queue';
-
-function loadFromStorage() {
-  try {
-    const stored = localStorage.getItem(QUEUE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    localStorage.removeItem(QUEUE_KEY);
-    return [];
-  }
-}
-
-function saveToStorage(items) {
-  if (items.length === 0) {
-    localStorage.removeItem(QUEUE_KEY);
-  } else {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
-  }
-}
-
+/**
+ * useOfflineQueue — React hook bridging the RML SyncCoordinator (Module 5)
+ * to the UI layer. Provides queue state and sync triggers.
+ * 
+ * Queue is now backed by IndexedDB via the RML local database context,
+ * replacing the previous localStorage implementation.
+ * 
+ * API is preserved for backward compatibility with existing components
+ * (Dashboard, Layout, SyncStatusBanner, POS).
+ */
 export function useOfflineQueue() {
-  const [queue, setQueue] = useState(() => loadFromStorage());
+  const [queue, setQueue] = useState([]);
   const [syncing, setSyncing] = useState(false);
   const syncInProgress = useRef(false);
 
-  // Re-read from storage on mount to stay in sync
+  // Load pending transactions from IndexedDB on mount
+  const refreshQueue = useCallback(async () => {
+    const pending = await localDB.fetchPendingTransactions();
+    setQueue(pending);
+  }, []);
+
   useEffect(() => {
-    const current = loadFromStorage();
-    setQueue(current);
-  }, []);
+    refreshQueue();
+  }, [refreshQueue]);
 
-  const addToQueue = useCallback((transaction) => {
-    setQueue(prev => {
-      // Avoid duplicate refs in queue
-      if (prev.find(t => t.transaction_ref === transaction.transaction_ref)) return prev;
-      const updated = [...prev, { ...transaction, queued_at: new Date().toISOString() }];
-      saveToStorage(updated);
-      return updated;
-    });
-  }, []);
+  /**
+   * Adds a transaction to the local IndexedDB queue with PENDING status.
+   * Used for offline checkout — the ProcessingEngine also writes directly
+   * to IndexedDB, so this is primarily for legacy/manual queue additions.
+   */
+  const addToQueue = useCallback(async (transaction) => {
+    // Ensure the transaction has a transaction_id for IndexedDB keying
+    const record = {
+      ...transaction,
+      transaction_id: transaction.transaction_id || crypto.randomUUID(),
+      sync_status: transaction.sync_status || SyncStatus.PENDING,
+      recorded_offline: true,
+    };
+    await localDB.writeTransactionRecords(record, record.items || []);
+    await refreshQueue();
+  }, [refreshQueue]);
 
-  const clearQueue = useCallback(() => {
-    saveToStorage([]);
+  const clearQueue = useCallback(async () => {
+    // Purge all pending transactions from local IndexedDB
+    const pending = await localDB.fetchPendingTransactions();
+    await Promise.allSettled(
+      pending.map((tx) => localDB.purgeTransaction(tx.transaction_id))
+    );
     setQueue([]);
   }, []);
 
-  // Sync: check if each transaction already exists, skip if so, else create
+  /**
+   * Syncs pending transactions to the Base44 cloud via the SyncCoordinator.
+   * Idempotent — checks transaction_ref existence before creating.
+   */
   const syncQueue = useCallback(async () => {
     if (syncInProgress.current) return;
-    const current = loadFromStorage();
-    if (!current.length) {
-      setQueue([]);
-      return;
-    }
-
     syncInProgress.current = true;
     setSyncing(true);
 
-    const remaining = [];
-    for (const txn of current) {
-      try {
-        // Check if this transaction_ref already exists in the DB
-        const existing = await base44.entities.Transaction.filter({ transaction_ref: txn.transaction_ref });
-        if (existing && existing.length > 0) {
-          // Already in DB — just remove from queue, no need to create
-          continue;
-        }
-        const { queued_at, ...payload } = txn;
-        await base44.entities.Transaction.create({ ...payload, sync_status: 'synced' });
-      } catch {
-        remaining.push(txn);
-      }
+    try {
+      await syncCoordinator.pushPendingPayloads();
+      await refreshQueue();
+    } finally {
+      setSyncing(false);
+      syncInProgress.current = false;
     }
+  }, [refreshQueue]);
 
-    saveToStorage(remaining);
-    setQueue(remaining);
-    setSyncing(false);
-    syncInProgress.current = false;
-  }, []);
-
-  return { queue, syncing, addToQueue, clearQueue, syncQueue };
+  return { queue, syncing, addToQueue, clearQueue, syncQueue, refreshQueue };
 }
