@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ received: true, type: event.type });
   } catch (error) {
+    console.error('handleSubscriptionWebhook error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, Plus, Pencil, Power, PowerOff, Store, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import OrganizationModal from '@/components/saasadmin/OrganizationModal';
+import SubscribeButton from '@/components/saasadmin/SubscribeButton';
 
 const PLAN_COLORS = {
   Starter: 'bg-blue-100 text-blue-700',
@@ -168,6 +169,14 @@ export default function OrganizationsPanel({ onOrgsChange }) {
                     </div>
 
                     {org.notes && <div className="text-sm bg-white rounded-md border border-border p-3"><span className="text-xs text-muted-foreground font-medium">Notes:</span> {org.notes}</div>}
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-border">
+                      <span className="text-xs text-muted-foreground font-medium">Billing Actions:</span>
+                      <SubscribeButton organization={org} billingCycle={org.billing_cycle || 'monthly'} variant="outline" size="sm">Manage Subscription</SubscribeButton>
+                      {org.subscription_status === 'trial' && !org.stripe_customer_id && (
+                        <SubscribeButton organization={org} billingCycle="monthly" size="sm">Start Paid Subscription</SubscribeButton>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

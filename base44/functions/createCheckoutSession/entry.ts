@@ -4,8 +4,6 @@ import Stripe from 'npm:stripe@17.5.0';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { organization_id, billing_cycle } = await req.json();
     if (!organization_id) return Response.json({ error: 'Organization ID required' }, { status: 400 });
@@ -28,12 +26,18 @@ Deno.serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: org.billing_email || undefined,
       client_reference_id: organization_id,
-      success_url: `${req.headers.get('origin') || 'https://app.base44.com'}/saas-admin?checkout=success`,
-      cancel_url: `${req.headers.get('origin') || 'https://app.base44.com'}/saas-admin?checkout=cancelled`
+      success_url: `${req.headers.get('origin') || 'https://app.base44.com'}/saas-admin?checkout=success&org=${organization_id}`,
+      cancel_url: `${req.headers.get('origin') || 'https://app.base44.com'}/saas-admin?checkout=cancelled&org=${organization_id}`,
+      metadata: {
+        base44_app_id: Deno.env.get("BASE44_APP_ID"),
+        organization_id,
+        plan_name: plan.name
+      }
     });
 
     return Response.json({ url: session.url });
   } catch (error) {
+    console.error('createCheckoutSession error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
