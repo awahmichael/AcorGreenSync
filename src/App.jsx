@@ -41,6 +41,7 @@ import CashManagement from '@/pages/CashManagement';
 import CustomerDisplay from '@/pages/CustomerDisplay';
 import DemandForecasting from '@/pages/DemandForecasting';
 import Currencies from '@/pages/Currencies';
+import PaymentTerminals from '@/pages/PaymentTerminals';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -90,6 +91,7 @@ const AuthenticatedApp = () => {
         <Route path="/customer-display" element={<CustomerDisplay />} />
         <Route path="/demand-forecasting" element={<DemandForecasting />} />
         <Route path="/currencies" element={<Currencies />} />
+        <Route path="/payment-terminals" element={<PaymentTerminals />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />

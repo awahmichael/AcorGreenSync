@@ -142,6 +142,38 @@
       ],
       "default": "card"
     },
+    "terminal_id": {
+      "type": "string",
+      "description": "ID of the PaymentTerminal that processed this transaction"
+    },
+    "gateway_provider": {
+      "type": "string",
+      "enum": [
+        "Stripe",
+        "Adyen",
+        "SumUp",
+        "MoniePoint",
+        "Squad"
+      ],
+      "description": "Gateway provider that processed the card payment"
+    },
+    "gateway_transaction_id": {
+      "type": "string",
+      "description": "Transaction ID returned by the payment gateway"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "initiated",
+        "pending_terminal",
+        "completed",
+        "failed",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "initiated",
+      "description": "Lifecycle status of the card payment flow"
+    },
     "notes": {
       "type": "string"
     }

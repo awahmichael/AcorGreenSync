@@ -1,0 +1,82 @@
+{
+  "name": "PaymentTerminal",
+  "type": "object",
+  "properties": {
+    "terminal_id": {
+      "type": "string",
+      "description": "Unique device ID assigned by the gateway provider (whitelist key)"
+    },
+    "alias": {
+      "type": "string",
+      "description": "Friendly name e.g. 'Counter 1', 'Front Desk'"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "Stripe",
+        "Adyen",
+        "SumUp",
+        "MoniePoint",
+        "Squad"
+      ],
+      "description": "Gateway provider this terminal belongs to"
+    },
+    "gateway_config_id": {
+      "type": "string",
+      "description": "Linked PaymentGatewayConfig record"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Store this terminal is physically assigned to"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "Hardware serial number (for asset tracking)"
+    },
+    "firmware_version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "online",
+        "offline",
+        "busy",
+        "error"
+      ],
+      "default": "offline",
+      "description": "Current terminal connectivity state"
+    },
+    "pairing_code": {
+      "type": "string",
+      "description": "One-time pairing code for initial activation (Layer 2 security)"
+    },
+    "is_paired": {
+      "type": "boolean",
+      "default": false,
+      "description": "True after successful pairing handshake"
+    },
+    "last_heartbeat": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last health check-in timestamp (Layer 5 monitoring)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "False = bricked for AcorCloud (stolen/decommissioned)"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "terminal_id",
+    "provider",
+    "store_id"
+  ]
+}

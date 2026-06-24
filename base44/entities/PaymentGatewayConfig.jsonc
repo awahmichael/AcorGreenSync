@@ -1,0 +1,59 @@
+{
+  "name": "PaymentGatewayConfig",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name for this gateway configuration"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "Stripe",
+        "Adyen",
+        "SumUp",
+        "MoniePoint",
+        "Squad"
+      ],
+      "description": "Payment gateway provider"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "sandbox",
+        "live"
+      ],
+      "default": "sandbox",
+      "description": "sandbox = test keys, live = production"
+    },
+    "api_key": {
+      "type": "string",
+      "description": "Public/publishable API key"
+    },
+    "secret_key": {
+      "type": "string",
+      "description": "Secret API key used for server-side gateway calls"
+    },
+    "merchant_code": {
+      "type": "string",
+      "description": "Merchant code (SumUp) or merchant account reference (Adyen)"
+    },
+    "webhook_secret": {
+      "type": "string",
+      "description": "Webhook signing secret for signature verification"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "provider",
+    "environment",
+    "secret_key"
+  ]
+}

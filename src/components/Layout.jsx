@@ -6,7 +6,7 @@ import {
   Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw,
   TrendingUp, UserCog, DollarSign, ClipboardList, ArrowLeftRight, Gift,
   Star, Megaphone, Globe, Wrench, FileText, Layers,
-  Tags, Banknote, Monitor, BarChart, Shield, KeyRound
+  Tags, Banknote, Monitor, BarChart, Shield, KeyRound, CreditCard
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -56,6 +56,7 @@ const navGroups = [
       { path: '/invoices', label: 'B2B Invoices', icon: FileText, roles: ['admin', 'manager'] },
       { path: '/accounting-export', label: 'Accounting Export', icon: FileText, roles: ['admin', 'manager'] },
       { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
+      { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },
     ]
   },
   {
