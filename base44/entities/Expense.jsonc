@@ -1,0 +1,54 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Expense description"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "stock_purchased",
+        "freight_in",
+        "packaging",
+        "delivery_to_customers",
+        "platform_fees",
+        "marketing",
+        "office_admin",
+        "other"
+      ],
+      "description": "P&L category classification"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Net expense amount in GBP (excluding VAT)"
+    },
+    "vat_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "VAT amount paid (reclaimable if applicable)"
+    },
+    "is_vat_reclaimable": {
+      "type": "boolean",
+      "default": true
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expense date"
+    },
+    "supplier": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "description",
+    "category",
+    "amount",
+    "date"
+  ]
+}

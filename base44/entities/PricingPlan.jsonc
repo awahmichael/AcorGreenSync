@@ -1,0 +1,59 @@
+{
+  "name": "PricingPlan",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Plan name e.g. Starter, Growth, Enterprise"
+    },
+    "price_monthly": {
+      "type": "number",
+      "description": "Monthly price in GBP (0 = Custom)"
+    },
+    "price_annual": {
+      "type": "number",
+      "description": "Annual price in GBP (billed yearly, 0 = Custom)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of included features"
+    },
+    "max_locations": {
+      "type": "number",
+      "default": 1
+    },
+    "max_skus": {
+      "type": "number",
+      "default": 5000
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "is_popular": {
+      "type": "boolean",
+      "default": false
+    },
+    "stripe_price_id_monthly": {
+      "type": "string",
+      "description": "Stripe price ID for monthly billing"
+    },
+    "stripe_price_id_annual": {
+      "type": "string",
+      "description": "Stripe price ID for annual billing"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
