@@ -6,7 +6,8 @@ import {
   Boxes, Truck, Clock, ShieldCheck, Users, Tag, RotateCcw,
   TrendingUp, UserCog, DollarSign, ClipboardList, ArrowLeftRight, Gift,
   Star, Megaphone, Globe, Wrench, FileText, Layers,
-  Tags, Banknote, Monitor, BarChart, Shield, KeyRound, CreditCard, Building2
+  Tags, Banknote, Monitor, BarChart, Shield, KeyRound, CreditCard, Building2,
+  ClipboardCheck, Receipt
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -34,6 +35,7 @@ const navGroups = [
       { path: '/bundles', label: 'Kits & Bundles', icon: Layers, roles: ['admin', 'manager'] },
       { path: '/price-books', label: 'Price Books', icon: Tags, roles: ['admin', 'manager'] },
       { path: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'manager'] },
+      { path: '/stock-counts', label: 'Stock Counts', icon: ClipboardCheck, roles: ['admin', 'manager'] },
       { path: '/stock-transfers', label: 'Stock Transfers', icon: ArrowLeftRight, roles: ['admin', 'manager'] },
       { path: '/suppliers', label: 'Suppliers', icon: Truck, roles: ['admin', 'manager'] },
       { path: '/purchase-orders', label: 'Purchase Orders', icon: ClipboardList, roles: ['admin', 'manager'] },
@@ -54,6 +56,7 @@ const navGroups = [
     label: 'Finance',
     items: [
       { path: '/invoices', label: 'B2B Invoices', icon: FileText, roles: ['admin', 'manager'] },
+      { path: '/tax-reports', label: 'Tax Reports', icon: Receipt, roles: ['admin', 'manager'] },
       { path: '/accounting-export', label: 'Accounting Export', icon: FileText, roles: ['admin', 'manager'] },
       { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
       { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },

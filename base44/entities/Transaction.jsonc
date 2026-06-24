@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Unique transaction reference"
     },
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this transaction belongs to"
+    },
     "store_id": {
       "type": "string"
     },
@@ -85,7 +89,7 @@
     },
     "subtotal": {
       "type": "number",
-      "description": "Cart total before discounts"
+      "description": "Cart total before discounts and tax"
     },
     "discount_amount": {
       "type": "number",
@@ -96,9 +100,19 @@
       "type": "string",
       "description": "Comma-separated list of applied promotion names"
     },
+    "tax_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "VAT rate % applied to this transaction"
+    },
+    "tax_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Calculated VAT amount (taxable_total x tax_rate / 100)"
+    },
     "total_amount": {
       "type": "number",
-      "description": "Final total after discounts"
+      "description": "Final total after discounts and including tax"
     },
     "total_cogs": {
       "type": "number",

@@ -43,6 +43,8 @@ import DemandForecasting from '@/pages/DemandForecasting';
 import Currencies from '@/pages/Currencies';
 import PaymentTerminals from '@/pages/PaymentTerminals';
 import SaaSAdmin from '@/pages/SaaSAdmin';
+import StockCounts from '@/pages/StockCounts';
+import TaxReports from '@/pages/TaxReports';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -94,6 +96,8 @@ const AuthenticatedApp = () => {
         <Route path="/currencies" element={<Currencies />} />
         <Route path="/payment-terminals" element={<PaymentTerminals />} />
         <Route path="/saas-admin" element={<SaaSAdmin />} />
+        <Route path="/stock-counts" element={<StockCounts />} />
+        <Route path="/tax-reports" element={<TaxReports />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />

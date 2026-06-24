@@ -1,0 +1,148 @@
+{
+  "name": "Organization",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Company or brand name"
+    },
+    "plan_type": {
+      "type": "string",
+      "enum": [
+        "Starter",
+        "Growth",
+        "Enterprise"
+      ],
+      "default": "Starter",
+      "description": "SaaS subscription tier"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "active",
+        "past_due",
+        "suspended",
+        "cancelled"
+      ],
+      "default": "trial",
+      "description": "Current subscription lifecycle state"
+    },
+    "billing_cycle": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "annual"
+      ],
+      "default": "monthly"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer reference for billing"
+    },
+    "trial_ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Trial period end date"
+    },
+    "max_locations": {
+      "type": "number",
+      "default": 1,
+      "description": "Maximum allowed store locations per plan"
+    },
+    "max_skus": {
+      "type": "number",
+      "default": 5000,
+      "description": "Maximum allowed product catalog size"
+    },
+    "default_tax_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "Default VAT rate % applied to tenant transactions"
+    },
+    "vat_number": {
+      "type": "string",
+      "description": "Organization's VAT registration number (for tenant reports)"
+    },
+    "country_code": {
+      "type": "string",
+      "default": "GB",
+      "description": "ISO 3166-1 alpha-2 country code for tax jurisdiction"
+    },
+    "stock_count_cycle": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "ad_hoc"
+      ],
+      "default": "monthly",
+      "description": "How often stock counts are prompted"
+    },
+    "billing_email": {
+      "type": "string",
+      "description": "Finance contact email for invoices and dunning notices"
+    },
+    "dunning_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "retry_1",
+        "retry_2",
+        "grace_period",
+        "suspended"
+      ],
+      "default": "none",
+      "description": "Payment retry state for failed subscription payments"
+    },
+    "dunning_retry_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of payment retry attempts"
+    },
+    "subscription_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the organization first subscribed"
+    },
+    "current_period_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Start of current billing period"
+    },
+    "current_period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End of current billing period"
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When subscription was cancelled (for churn tracking)"
+    },
+    "monthly_recurring_revenue": {
+      "type": "number",
+      "default": 0,
+      "description": "Calculated MRR contribution from this organization"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the org has completed the setup wizard"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "plan_type",
+    "subscription_status"
+  ]
+}

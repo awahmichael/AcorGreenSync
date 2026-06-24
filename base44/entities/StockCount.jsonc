@@ -1,0 +1,139 @@
+{
+  "name": "StockCount",
+  "type": "object",
+  "properties": {
+    "count_ref": {
+      "type": "string",
+      "description": "Unique stock count reference"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Store where the count is taking place"
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "count_type": {
+      "type": "string",
+      "enum": [
+        "global",
+        "departmentalized"
+      ],
+      "default": "global",
+      "description": "global = entire store, departmentalized = specific category"
+    },
+    "department": {
+      "type": "string",
+      "description": "Category/department name for departmentalized counts (null for global)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "in_progress",
+        "counted",
+        "reconciled",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "Lifecycle: draft -> in_progress -> counted -> reconciled"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the system snapshot of inventory was taken"
+    },
+    "counted_by": {
+      "type": "string",
+      "description": "Staff member performing the count"
+    },
+    "counted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the physical count was completed"
+    },
+    "reconciled_by": {
+      "type": "string",
+      "description": "Manager who approved the adjustment"
+    },
+    "reconciled_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "system_quantity": {
+            "type": "number",
+            "description": "Quantity recorded in system at snapshot time"
+          },
+          "counted_quantity": {
+            "type": "number",
+            "description": "Actual physical count"
+          },
+          "variance": {
+            "type": "number",
+            "description": "counted - system (negative = shrinkage)"
+          },
+          "variance_reason": {
+            "type": "string",
+            "enum": [
+              "shrinkage",
+              "damage",
+              "admin_error",
+              "surplus",
+              "unexplained"
+            ],
+            "description": "Explanation for variance"
+          },
+          "unit_cost": {
+            "type": "number",
+            "description": "Cost price for variance value calculation"
+          },
+          "variance_value": {
+            "type": "number",
+            "description": "variance x unit_cost"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Line items in the stock count"
+    },
+    "total_items": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of products counted"
+    },
+    "total_variance_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Sum of all variance values"
+    },
+    "notes": {
+      "type": "string",
+      "description": "General notes for the count session"
+    }
+  },
+  "required": [
+    "count_ref",
+    "store_name",
+    "count_type",
+    "status"
+  ]
+}
