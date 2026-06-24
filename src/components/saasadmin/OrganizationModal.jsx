@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 const PLAN_DEFAULTS = {
-  Starter: { max_locations: 1, max_skus: 5000, price: 29 },
-  Growth: { max_locations: 5, max_skus: 50000, price: 79 },
-  Enterprise: { max_locations: 999, max_skus: 999999, price: 0 }
+  Starter: { max_locations: 1, max_skus: 5000, price_monthly: 29, price_annual: 290 },
+  Growth: { max_locations: 5, max_skus: 50000, price_monthly: 79, price_annual: 790 },
+  Enterprise: { max_locations: 999, max_skus: 999999, price_monthly: 199, price_annual: 1990 }
 };
 
 export default function OrganizationModal({ org, onClose, onSaved }) {
@@ -121,9 +121,9 @@ export default function OrganizationModal({ org, onClose, onSaved }) {
               <Select value={form.plan_type} onValueChange={handlePlanChange}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Starter">Starter (£29/mo)</SelectItem>
-                  <SelectItem value="Growth">Growth (£79/mo)</SelectItem>
-                  <SelectItem value="Enterprise">Enterprise (Custom)</SelectItem>
+                  <SelectItem value="Starter">{`Starter (£${form.billing_cycle === 'annual' ? PLAN_DEFAULTS.Starter.price_annual : PLAN_DEFAULTS.Starter.price_monthly}${form.billing_cycle === 'annual' ? '/yr' : '/mo'})`}</SelectItem>
+                  <SelectItem value="Growth">{`Growth (£${form.billing_cycle === 'annual' ? PLAN_DEFAULTS.Growth.price_annual : PLAN_DEFAULTS.Growth.price_monthly}${form.billing_cycle === 'annual' ? '/yr' : '/mo'})`}</SelectItem>
+                  <SelectItem value="Enterprise">{`Enterprise (£${form.billing_cycle === 'annual' ? PLAN_DEFAULTS.Enterprise.price_annual : PLAN_DEFAULTS.Enterprise.price_monthly}${form.billing_cycle === 'annual' ? '/yr' : '/mo'})`}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -142,13 +142,22 @@ export default function OrganizationModal({ org, onClose, onSaved }) {
             </div>
             <div>
               <Label>Billing Cycle</Label>
-              <Select value={form.billing_cycle} onValueChange={v => setForm({ ...form, billing_cycle: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annual">Annual</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex rounded-md border border-input overflow-hidden h-9">
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, billing_cycle: 'monthly' }))}
+                  className={`flex-1 text-sm font-medium transition-colors ${form.billing_cycle === 'monthly' ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:bg-accent'}`}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, billing_cycle: 'annual' }))}
+                  className={`flex-1 text-sm font-medium transition-colors ${form.billing_cycle === 'annual' ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:bg-accent'}`}
+                >
+                  Annually
+                </button>
+              </div>
             </div>
           </div>
 
