@@ -1,72 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { Building2 } from 'lucide-react';
-import MerchantsPanel from '@/components/saasadmin/MerchantsPanel';
+import React, { useState } from 'react';
+import { Building2, DollarSign, Layers, AlertTriangle, History, Activity } from 'lucide-react';
+import OrganizationsPanel from '@/components/saasadmin/OrganizationsPanel';
 import RevenueOverview from '@/components/saasadmin/RevenueOverview';
-import TaxCompliancePanel from '@/components/saasadmin/TaxCompliancePanel';
-import MerchantHealth from '@/components/saasadmin/MerchantHealth';
-import { toast } from 'sonner';
+import PlansPricingPanel from '@/components/saasadmin/PlansPricingPanel';
+import DunningPanel from '@/components/saasadmin/DunningPanel';
+import AuditTrailPanel from '@/components/saasadmin/AuditTrailPanel';
+import SystemHealthPanel from '@/components/saasadmin/SystemHealthPanel';
+
+const TABS = [
+  { id: 'organizations', label: 'Organizations', icon: Building2 },
+  { id: 'revenue', label: 'Revenue & Billing', icon: DollarSign },
+  { id: 'plans', label: 'Plans & Pricing', icon: Layers },
+  { id: 'dunning', label: 'Dunning', icon: AlertTriangle },
+  { id: 'audit', label: 'Audit Trail', icon: History },
+  { id: 'health', label: 'System Health', icon: Activity },
+];
 
 export default function SaaSAdmin() {
-  const [activeTab, setActiveTab] = useState('merchants');
-  const [stores, setStores] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const storeData = await base44.entities.Store.list('-created_date', 200);
-        setStores(storeData || []);
-      } catch (err) {
-        toast.error('Failed to load platform data');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  const tabs = [
-    { id: 'merchants', label: 'Merchants' },
-    { id: 'revenue', label: 'Revenue (MRR/ARR)' },
-    { id: 'tax', label: 'Tax & Compliance' },
-    { id: 'health', label: 'Merchant Health' },
-  ];
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const [activeTab, setActiveTab] = useState('organizations');
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><Building2 className="w-6 h-6 text-primary" /> SaaS Platform Admin</h1>
-        <p className="text-sm text-muted-foreground">Platform-wide management cockpit for merchants, revenue, tax, and health monitoring</p>
+        <p className="text-sm text-muted-foreground">Complete management cockpit for organizations, billing, plans, and platform health</p>
       </div>
 
       <div className="flex gap-1 border-b border-border overflow-x-auto">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition ${
-              activeTab === tab.id
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {TABS.map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {activeTab === 'merchants' && <MerchantsPanel stores={stores} />}
+      {activeTab === 'organizations' && <OrganizationsPanel />}
       {activeTab === 'revenue' && <RevenueOverview />}
-      {activeTab === 'tax' && <TaxCompliancePanel />}
-      {activeTab === 'health' && <MerchantHealth />}
+      {activeTab === 'plans' && <PlansPricingPanel />}
+      {activeTab === 'dunning' && <DunningPanel />}
+      {activeTab === 'audit' && <AuditTrailPanel />}
+      {activeTab === 'health' && <SystemHealthPanel />}
     </div>
   );
 }
