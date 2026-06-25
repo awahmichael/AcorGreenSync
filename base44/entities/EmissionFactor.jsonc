@@ -4,7 +4,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Factor name/description"
+      "description": "Factor name/description from DEFRA dataset"
     },
     "source": {
       "type": "string",
@@ -16,31 +16,46 @@
     },
     "category": {
       "type": "string",
-      "description": "Product/commodity category"
+      "description": "Sheet/tab name from DEFRA Excel, e.g. 'Materials', 'Fuels', 'Freight'"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Sub-classification within the category for finer AI matching"
     },
     "commodity_code": {
       "type": "string",
-      "description": "UK commodity code"
+      "description": "Unique DEFRA reference key for lookup"
     },
     "kg_co2e_per_unit": {
       "type": "number",
-      "description": "kg CO2e per unit"
+      "description": "kg CO2e per unit of measurement"
     },
     "unit": {
       "type": "string",
-      "default": "kg"
+      "default": "kg",
+      "description": "Unit of measurement (kg, tonne, litre, kWh, passenger-km, etc.)"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "Scope 1",
+        "Scope 2",
+        "Scope 3",
+        "Outside of Scopes"
+      ],
+      "description": "GHG Protocol scope classification for reporting breakdown"
     },
     "scope3_category": {
       "type": "string",
-      "description": "GHG Protocol Scope 3 category"
+      "description": "GHG Protocol Scope 3 category if applicable"
     },
     "year": {
       "type": "number",
-      "description": "DEFRA publication year"
+      "description": "DEFRA publication year (e.g. 2025)"
     },
-    "version": {
+    "dataset_version": {
       "type": "string",
-      "description": "Dataset version"
+      "description": "Dataset version tag for delta-audit tracking (e.g. '2025_v1.0')"
     },
     "is_active": {
       "type": "boolean",
