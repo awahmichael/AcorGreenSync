@@ -32,7 +32,7 @@ export default function Inventory() {
 
   useEffect(() => {
     Promise.all([
-      base44.entities.Product.list(),
+      base44.entities.Product.filter({ is_current_version: true }),
       base44.entities.StockMovement.list('-movement_date', 100),
       base44.entities.Store.list(),
     ]).then(([p, m, s]) => { setProducts(p); setMovements(m); setStores(s); }).finally(() => setLoading(false));
@@ -62,7 +62,7 @@ export default function Inventory() {
     toast.success('Stock movement recorded');
     setShowModal(false);
     setForm({ product_id: '', store_id: '', movement_type: 'purchase_in', quantity: '', reference: '', notes: '', movement_date: new Date().toISOString().split('T')[0] });
-    const [p, m] = await Promise.all([base44.entities.Product.list(), base44.entities.StockMovement.list('-movement_date', 100)]);
+    const [p, m] = await Promise.all([base44.entities.Product.filter({ is_current_version: true }), base44.entities.StockMovement.list('-movement_date', 100)]);
     setProducts(p); setMovements(m);
   };
 

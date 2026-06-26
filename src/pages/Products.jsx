@@ -28,7 +28,7 @@ export default function Products() {
 
   const load = () => {
     setLoading(true);
-    base44.entities.Product.list().then(setProducts).finally(() => setLoading(false));
+    base44.entities.Product.filter({ is_current_version: true }).then(setProducts).finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
