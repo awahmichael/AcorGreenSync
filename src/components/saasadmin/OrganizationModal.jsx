@@ -107,9 +107,9 @@ export default function OrganizationModal({ org, onClose, onSaved }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader><DialogTitle>{isEdit ? 'Edit Organization' : 'Create New Organization'}</DialogTitle></DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-1">
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Organization Name *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Acme Retail Ltd" /></div>
             <div><Label>Billing Email</Label><Input type="email" value={form.billing_email} onChange={e => setForm({ ...form, billing_email: e.target.value })} placeholder="finance@acme.com" /></div>
@@ -206,7 +206,7 @@ export default function OrganizationModal({ org, onClose, onSaved }) {
           <div><Label>Stripe Customer ID</Label><Input value={form.stripe_customer_id} onChange={e => setForm({ ...form, stripe_customer_id: e.target.value })} placeholder="cus_XXXXX" /></div>
           <div><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Internal notes about this organization..." /></div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="border-t pt-4 mt-2 shrink-0">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
             {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : isEdit ? 'Save Changes' : 'Create Organization'}
