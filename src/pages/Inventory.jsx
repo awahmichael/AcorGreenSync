@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const MOVEMENT_LABELS = {
   purchase_in: { label: 'Purchase In', color: 'text-green-600 bg-green-50', sign: '+' },
@@ -29,14 +30,16 @@ export default function Inventory() {
     quantity: '', reference: '', notes: '',
     movement_date: new Date().toISOString().split('T')[0]
   });
+  const { organizationId } = useOrganization();
 
   useEffect(() => {
+    if (!organizationId) { setLoading(false); return; }
     Promise.all([
-      base44.entities.Product.filter({ is_current_version: true }),
+      base44.entities.Product.filter({ is_current_version: true, organization_id: organizationId }),
       base44.entities.StockMovement.list('-movement_date', 100),
-      base44.entities.Store.list(),
+      base44.entities.Store.filter({ organization_id: organizationId }),
     ]).then(([p, m, s]) => { setProducts(p); setMovements(m); setStores(s); }).finally(() => setLoading(false));
-  }, []);
+  }, [organizationId]);
 
   const saveMovement = async () => {
     if (!form.product_id || !form.quantity) { toast.error('Product and quantity required'); return; }
@@ -52,6 +55,7 @@ export default function Inventory() {
       product_name: product?.name || '',
       store_name: store?.name || '',
       unit: product?.unit || 'unit',
+      organization_id: organizationId,
       movement_date: new Date(form.movement_date).toISOString(),
     });
 
@@ -62,7 +66,7 @@ export default function Inventory() {
     toast.success('Stock movement recorded');
     setShowModal(false);
     setForm({ product_id: '', store_id: '', movement_type: 'purchase_in', quantity: '', reference: '', notes: '', movement_date: new Date().toISOString().split('T')[0] });
-    const [p, m] = await Promise.all([base44.entities.Product.filter({ is_current_version: true }), base44.entities.StockMovement.list('-movement_date', 100)]);
+    const [p, m] = await Promise.all([base44.entities.Product.filter({ is_current_version: true, organization_id: organizationId }), base44.entities.StockMovement.list('-movement_date', 100)]);
     setProducts(p); setMovements(m);
   };
 

@@ -45,6 +45,7 @@ import PaymentTerminals from '@/pages/PaymentTerminals';
 import SaaSAdmin from '@/pages/SaaSAdmin';
 import StockCounts from '@/pages/StockCounts';
 import TaxReports from '@/pages/TaxReports';
+import Onboarding from '@/pages/Onboarding';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/pos" element={<POS />} />
         <Route path="/products" element={<Products />} />
         <Route path="/inventory" element={<Inventory />} />

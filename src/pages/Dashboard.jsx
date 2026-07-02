@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Leaf, TrendingDown, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight, BarChart2, Store } from 'lucide-react';
+import { Leaf, TrendingDown, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight, BarChart2, Store, Rocket } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 import KpiCard from '@/components/dashboard/KpiCard';
 import NetZeroProgress from '@/components/dashboard/NetZeroProgress';
 import SyncStatusBanner from '@/components/dashboard/SyncStatusBanner';
@@ -26,6 +28,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
   const { queue, syncing, syncQueue, clearQueue } = useOfflineQueue();
+  const { organizationId, currentOrg } = useOrganization();
 
   // Trigger sync when dashboard loads and we're online with a queue
   useEffect(() => {
@@ -33,12 +36,14 @@ export default function Dashboard() {
   }, [isOnline]);
 
   useEffect(() => {
+    if (!organizationId) { setLoading(false); return; }
+    setLoading(true);
     Promise.all([
-      base44.entities.Transaction.list('-transaction_date', 100),
-      base44.entities.Product.list(),
+      base44.entities.Transaction.filter({ organization_id: organizationId }, '-transaction_date', 100),
+      base44.entities.Product.filter({ organization_id: organizationId, is_current_version: true }),
       base44.entities.CarbonTarget.filter({ is_active: true }),
       base44.entities.Shift.list('-shift_start', 20),
-      base44.entities.Store.filter({ is_active: true }),
+      base44.entities.Store.filter({ is_active: true, organization_id: organizationId }),
     ]).then(([txns, prods, targets, shiftData, storeData]) => {
       setTransactions(txns);
       setProducts(prods);
@@ -46,7 +51,7 @@ export default function Dashboard() {
       setShifts(shiftData);
       setStores(storeData);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [organizationId]);
 
   // Carbon aggregates
   const totalCO2e = transactions.reduce((sum, t) => sum + (t.total_kg_co2e || 0), 0);
@@ -71,6 +76,22 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Onboarding prompt */}
+      {currentOrg && !currentOrg.onboarding_completed && (
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl px-5 py-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+            <Rocket className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <div className="font-semibold text-foreground">Complete your setup</div>
+            <div className="text-sm text-muted-foreground">Finish onboarding to configure your store, tax rates, and start selling.</div>
+          </div>
+          <Link to="/onboarding" className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap">
+            Continue Setup →
+          </Link>
+        </div>
+      )}
+
       {/* Header + Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

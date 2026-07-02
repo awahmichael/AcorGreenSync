@@ -1,0 +1,66 @@
+import { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { base44 } from '@/api/base44Client';
+
+const STORAGE_KEY = 'acorcloud_current_org_id';
+const OrgContext = createContext(null);
+
+export const OrgProvider = ({ children }) => {
+  const [organizations, setOrganizations] = useState([]);
+  const [currentOrg, setCurrentOrg] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadOrgs = useCallback(async () => {
+    try {
+      const orgs = await base44.entities.Organization.list('-created_date', 500);
+      setOrganizations(orgs || []);
+      const savedId = localStorage.getItem(STORAGE_KEY);
+      const saved = savedId ? orgs.find(o => o.id === savedId) : null;
+      if (saved) {
+        setCurrentOrg(saved);
+      } else if (orgs.length > 0) {
+        setCurrentOrg(orgs[0]);
+        localStorage.setItem(STORAGE_KEY, orgs[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to load organizations', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadOrgs(); }, [loadOrgs]);
+
+  const switchOrg = useCallback((orgId) => {
+    const org = organizations.find(o => o.id === orgId);
+    if (org) {
+      setCurrentOrg(org);
+      localStorage.setItem(STORAGE_KEY, orgId);
+    }
+  }, [organizations]);
+
+  const refreshCurrentOrg = useCallback(async () => {
+    if (!currentOrg) return;
+    try {
+      const updated = await base44.entities.Organization.get(currentOrg.id);
+      setCurrentOrg(updated);
+    } catch (err) {
+      console.error('Failed to refresh org', err);
+    }
+  }, [currentOrg]);
+
+  return (
+    <OrgContext.Provider value={{
+      organizations, currentOrg, switchOrg, loading,
+      organizationId: currentOrg?.id || null,
+      refreshCurrentOrg, reloadOrgs: loadOrgs
+    }}>
+      {children}
+    </OrgContext.Provider>
+  );
+};
+
+export const useOrganization = () => {
+  const ctx = useContext(OrgContext);
+  if (!ctx) throw new Error('useOrganization must be used within OrgProvider');
+  return ctx;
+};

@@ -7,6 +7,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { useRml } from '@/hooks/useRml';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 import { toast } from 'sonner';
 import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
@@ -32,15 +33,17 @@ export default function POS() {
   const isOnline = useOnlineStatus();
   const { addToQueue } = useOfflineQueue();
   const { processingEngine, syncCoordinator, refreshCache } = useRml();
+  const { organizationId } = useOrganization();
 
   useEffect(() => {
-    base44.entities.Product.filter({ is_active: true }).then(async (prods) => {
+    if (!organizationId) { setLoading(false); return; }
+    base44.entities.Product.filter({ is_active: true, organization_id: organizationId }).then(async (prods) => {
       setProducts(prods);
       await refreshCache();
     }).finally(() => setLoading(false));
     base44.entities.Customer.list().then(setCustomers).catch(() => {});
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
-  }, []);
+  }, [organizationId]);
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -157,6 +160,7 @@ export default function POS() {
       // validates stock, deducts local inventory, writes atomic ledger to IndexedDB
       transaction = await processingEngine.executeCheckout('main-store', cart, {
         transaction_ref: txRef,
+        organization_id: organizationId,
         store_name: 'Main Store',
         cashier_name: 'Cashier',
         payment_method: paymentMethod,

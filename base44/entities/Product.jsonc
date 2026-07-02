@@ -100,6 +100,10 @@
       "type": "string",
       "description": "Store/location reference"
     },
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this product belongs to"
+    },
     "is_active": {
       "type": "boolean",
       "default": true

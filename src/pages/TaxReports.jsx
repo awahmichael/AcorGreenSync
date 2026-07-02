@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Download, PoundSterling, FileText, TrendingUp } from 'lucide-react';
+import { Receipt, Download, PoundSterling, FileText, TrendingUp, FileCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const TAX_RATE_LABELS = {
   20: 'Standard (20%)',
@@ -16,11 +17,13 @@ export default function TaxReports() {
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
   const [toDate, setToDate] = useState(new Date().toISOString().slice(0, 10));
+  const { organizationId } = useOrganization();
 
   useEffect(() => {
+    if (!organizationId) { setLoading(false); return; }
     (async () => {
       try {
-        const data = await base44.entities.Transaction.list('-transaction_date', 500);
+        const data = await base44.entities.Transaction.filter({ organization_id: organizationId }, '-transaction_date', 500);
         setTransactions(data || []);
       } catch (err) {
         toast.error('Failed to load transactions');
@@ -28,7 +31,7 @@ export default function TaxReports() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [organizationId]);
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>;
@@ -61,6 +64,42 @@ export default function TaxReports() {
     byPayment[method].tax += t.tax_amount || 0;
     byPayment[method].count += 1;
   });
+
+  const exportMtdVat = () => {
+    const netSales = totalSales;
+    const vatDue = totalTax;
+    const vatReclaimed = 0;
+    const netVat = vatDue - vatReclaimed;
+    const euAcquisitions = 0;
+    const euSupplies = 0;
+
+    const rows = [
+      ['HMRC Making Tax Digital — VAT Return'],
+      ['Period', `${fromDate} to ${toDate}`],
+      ['Generated', new Date().toLocaleString('en-GB')],
+      [],
+      ['Box', 'Description', 'Value (£)'],
+      ['Box 1', 'VAT due on sales and other outputs', vatDue.toFixed(2)],
+      ['Box 2', 'VAT due on acquisitions from EU member states', '0.00'],
+      ['Box 3', 'Total VAT due (Box 1 + Box 2)', vatDue.toFixed(2)],
+      ['Box 4', 'VAT reclaimed on purchases and other inputs', vatReclaimed.toFixed(2)],
+      ['Box 5', 'Net VAT to pay or reclaim (Box 3 - Box 4)', netVat.toFixed(2)],
+      ['Box 6', 'Total value of sales and other outputs (excl VAT)', netSales.toFixed(2)],
+      ['Box 7', 'Total value of purchases and other inputs (excl VAT)', '0.00'],
+      ['Box 8', 'Total value of supplies to EU member states (excl VAT)', euSupplies.toFixed(2)],
+      ['Box 9', 'Total value of acquisitions from EU (excl VAT)', euAcquisitions.toFixed(2)],
+    ];
+
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hmrc-mtd-vat-${fromDate}-to-${toDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('HMRC MTD 9-box VAT return exported');
+  };
 
   const exportVatReturn = () => {
     const rows = [
@@ -113,6 +152,7 @@ export default function TaxReports() {
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="block rounded-md border border-input px-3 py-2 text-sm" />
         </div>
         <Button variant="outline" onClick={exportVatReturn}><Download className="w-4 h-4" /> Export VAT Return</Button>
+        <Button variant="outline" onClick={exportMtdVat}><FileCheck className="w-4 h-4" /> Export HMRC MTD (9-Box)</Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

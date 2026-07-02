@@ -12,6 +12,8 @@ import {
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useAuth } from '@/lib/AuthContext';
+import { OrgProvider, useOrganization } from '@/hooks/useOrganization.jsx';
+import OrgSwitcher from '@/components/OrgSwitcher';
 import { cn } from '@/lib/utils';
 
 // roles: undefined = all, 'admin' = admin only, 'cashier' = cashier can access
@@ -87,12 +89,21 @@ const navGroups = [
 ];
 
 export default function Layout() {
+  return (
+    <OrgProvider>
+      <LayoutInner />
+    </OrgProvider>
+  );
+}
+
+function LayoutInner() {
   const location = useLocation();
   const isOnline = useOnlineStatus();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
   const { queue, syncQueue } = useOfflineQueue();
   const { user } = useAuth();
+  const { currentOrg } = useOrganization();
   const userRole = user?.role || 'user';
 
   const canAccess = (roles) => !roles || roles.includes(userRole);
@@ -244,6 +255,7 @@ export default function Layout() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
+          {currentOrg && <OrgSwitcher />}
           {user && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="hidden sm:inline font-medium text-foreground">{user.full_name || user.email}</span>

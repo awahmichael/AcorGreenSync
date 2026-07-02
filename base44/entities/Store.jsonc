@@ -23,6 +23,10 @@
     "is_active": {
       "type": "boolean",
       "default": true
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this store belongs to"
     }
   },
   "required": [

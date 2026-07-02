@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 import ProductModal from '@/components/products/ProductModal';
 import VersionHistoryModal from '@/components/products/VersionHistoryModal';
 import BulkUploadModal from '@/components/products/BulkUploadModal';
@@ -25,13 +26,15 @@ export default function Products() {
   const [historyProduct, setHistoryProduct] = useState(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [filter, setFilter] = useState('all');
+  const { organizationId } = useOrganization();
 
   const load = () => {
+    if (!organizationId) return;
     setLoading(true);
-    base44.entities.Product.filter({ is_current_version: true }).then(setProducts).finally(() => setLoading(false));
+    base44.entities.Product.filter({ is_current_version: true, organization_id: organizationId }).then(setProducts).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (organizationId) load(); }, [organizationId]);
 
   const filtered = products.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||

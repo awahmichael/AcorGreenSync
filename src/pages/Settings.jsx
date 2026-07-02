@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const BLANK_TARGET = { label: '', annual_kg_co2e: '', methodology: 'Board Approved', baseline_year: new Date().getFullYear(), reduction_pct: '', scope: 'Company-wide', notes: '', is_active: true };
 
@@ -20,10 +21,15 @@ export default function Settings() {
   const [targetForm, setTargetForm] = useState(BLANK_TARGET);
   const [editingTarget, setEditingTarget] = useState(null);
   const [showTargetForm, setShowTargetForm] = useState(false);
+  const { organizationId } = useOrganization();
 
   useEffect(() => {
-    Promise.all([base44.entities.Store.list(), base44.entities.CarbonTarget.list()]).then(([s, t]) => { setStores(s); setTargets(t); });
-  }, []);
+    if (!organizationId) return;
+    Promise.all([
+      base44.entities.Store.filter({ organization_id: organizationId }),
+      base44.entities.CarbonTarget.list()
+    ]).then(([s, t]) => { setStores(s); setTargets(t); });
+  }, [organizationId]);
 
   const saveTarget = async () => {
     if (!targetForm.label || !targetForm.annual_kg_co2e) { toast.error('Label and annual target are required'); return; }
@@ -66,9 +72,9 @@ export default function Settings() {
       toast.error('Store name and location are required');
       return;
     }
-    await base44.entities.Store.create({ ...newStore, is_active: true });
+    await base44.entities.Store.create({ ...newStore, organization_id: organizationId, is_active: true });
     toast.success('Store added');
-    setStores(await base44.entities.Store.list());
+    setStores(await base44.entities.Store.filter({ organization_id: organizationId }));
     setNewStore({ name: '', location: '', postcode: '', manager_name: '' });
   };
 
