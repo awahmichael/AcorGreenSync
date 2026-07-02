@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Building2, ChevronDown, Check } from 'lucide-react';
+import { Building2, ChevronDown, Check, Plus } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization.jsx';
 import { cn } from '@/lib/utils';
+import OrganizationModal from '@/components/saasadmin/OrganizationModal';
 
 export default function OrgSwitcher() {
-  const { organizations, currentOrg, switchOrg, loading } = useOrganization();
+  const { organizations, currentOrg, switchOrg, loading, reloadOrgs } = useOrganization();
   const [open, setOpen] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  if (loading || organizations.length === 0) return null;
+  if (loading) return null;
 
   return (
     <div className="relative">
@@ -22,7 +24,7 @@ export default function OrgSwitcher() {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-border rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
+          <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-border rounded-lg shadow-lg z-20 max-h-72 overflow-y-auto">
             {organizations.map(org => (
               <button
                 key={org.id}
@@ -36,8 +38,21 @@ export default function OrgSwitcher() {
                 {currentOrg?.id === org.id && <Check className="w-4 h-4 text-primary flex-shrink-0 ml-2" />}
               </button>
             ))}
+            <button
+              onClick={() => { setOpen(false); setShowCreateModal(true); }}
+              className="w-full text-left px-3 py-2.5 hover:bg-muted/50 flex items-center gap-2 text-sm font-medium text-primary transition-colors"
+            >
+              <Plus className="w-4 h-4 flex-shrink-0" />
+              Create New Organization
+            </button>
           </div>
         </>
+      )}
+      {showCreateModal && (
+        <OrganizationModal
+          onClose={() => setShowCreateModal(false)}
+          onSaved={async () => { await reloadOrgs(); }}
+        />
       )}
     </div>
   );
