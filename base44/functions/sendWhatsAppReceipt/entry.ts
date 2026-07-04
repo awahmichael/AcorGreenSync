@@ -7,17 +7,20 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { phone, transaction_ref, total_amount, business_name, items, total_kg_co2e, receipt_url } = body;
+    const { phone, transaction_ref, total_amount, business_name, items, total_kg_co2e, receipt_url, organization_id } = body;
 
     if (!phone) return Response.json({ error: 'Phone number required' }, { status: 400 });
+    if (!organization_id) return Response.json({ error: 'organization_id required' }, { status: 400 });
 
-    const token = Deno.env.get("WHATSAPP_API_TOKEN");
-    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-
-    if (!token || !phoneNumberId) {
-      console.error('[WhatsApp] Missing WHATSAPP_API_TOKEN or WHATSAPP_PHONE_NUMBER_ID');
-      return Response.json({ error: 'WhatsApp Business API not configured. Set WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID secrets.' }, { status: 503 });
+    // Fetch the tenant's WhatsApp config
+    const configs = await base44.asServiceRole.entities.WhatsAppConfig.filter({ organization_id, is_active: true });
+    if (!configs || configs.length === 0) {
+      return Response.json({ error: 'WhatsApp Business API not configured for this organization. Set up in Settings → WhatsApp.' }, { status: 503 });
     }
+
+    const config = configs[0];
+    const phoneNumberId = config.phone_number_id;
+    const apiToken = config.api_token;
 
     // Format phone number (strip non-digits, ensure country code)
     const cleanPhone = phone.replace(/\D/g, '');
@@ -29,13 +32,13 @@ Deno.serve(async (req) => {
 
     const moreItems = items?.length > 10 ? `\n...and ${items.length - 10} more items` : '';
 
-    const messageBody = `🧾 *${business_name || 'AcorCloud'}*\n\nTransaction: ${transaction_ref}\n\n${itemLines}${moreItems}\n\nTotal: £${(total_amount || 0).toFixed(2)}\n🌱 Carbon: ${(total_kg_co2e || 0).toFixed(3)} kg CO₂e${receipt_url ? `\n\nView receipt: ${receipt_url}` : ''}\n\nThank you for shopping sustainably!`;
+    const messageBody = `🧾 *${config.display_name || business_name || 'AcorCloud'}*\n\nTransaction: ${transaction_ref}\n\n${itemLines}${moreItems}\n\nTotal: £${(total_amount || 0).toFixed(2)}\n🌱 Carbon: ${(total_kg_co2e || 0).toFixed(3)} kg CO₂e${receipt_url ? `\n\nView receipt: ${receipt_url}` : ''}\n\nThank you for shopping sustainably!`;
 
-    // Send via WhatsApp Cloud API
+    // Send via WhatsApp Cloud API using the tenant's credentials
     const waResp = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${apiToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -50,11 +53,11 @@ Deno.serve(async (req) => {
     const waData = await waResp.json();
 
     if (!waResp.ok) {
-      console.error('[WhatsApp] API error:', JSON.stringify(waData));
+      console.error('[WhatsApp] API error for org', organization_id, ':', JSON.stringify(waData));
       return Response.json({ error: waData?.error?.message || 'WhatsApp send failed' }, { status: 502 });
     }
 
-    console.log('[WhatsApp] Receipt sent to', cleanPhone, 'message_id:', waData?.messages?.[0]?.id);
+    console.log('[WhatsApp] Receipt sent to', cleanPhone, 'for org', organization_id, 'message_id:', waData?.messages?.[0]?.id);
     return Response.json({ success: true, message_id: waData?.messages?.[0]?.id });
   } catch (error) {
     console.error('[WhatsApp] Function error:', error.message);

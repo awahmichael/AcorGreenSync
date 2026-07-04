@@ -1,0 +1,50 @@
+{
+  "name": "HmrcMtdConfig",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this config belongs to"
+    },
+    "vrn": {
+      "type": "string",
+      "description": "VAT Registration Number (9 digits, no spaces or GB prefix)"
+    },
+    "access_token": {
+      "type": "string",
+      "description": "OAuth access token from HMRC MTD"
+    },
+    "refresh_token": {
+      "type": "string",
+      "description": "OAuth refresh token for renewing expired access tokens"
+    },
+    "token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the access token expires"
+    },
+    "is_connected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether HMRC MTD is currently connected and authorized"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "sandbox",
+        "production"
+      ],
+      "default": "sandbox",
+      "description": "HMRC API environment"
+    },
+    "connected_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the tenant last connected to HMRC MTD"
+    }
+  },
+  "required": [
+    "organization_id",
+    "vrn"
+  ]
+}

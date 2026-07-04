@@ -1,0 +1,35 @@
+{
+  "name": "WhatsAppConfig",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this config belongs to"
+    },
+    "phone_number_id": {
+      "type": "string",
+      "description": "WhatsApp Cloud API phone number ID from Meta Business dashboard"
+    },
+    "api_token": {
+      "type": "string",
+      "description": "WhatsApp Cloud API permanent access token"
+    },
+    "business_phone_number": {
+      "type": "string",
+      "description": "WhatsApp Business phone number with country code (e.g. 447700900123)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Business name shown in WhatsApp receipt messages"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "organization_id",
+    "phone_number_id",
+    "api_token"
+  ]
+}
