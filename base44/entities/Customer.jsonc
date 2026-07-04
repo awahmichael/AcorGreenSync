@@ -43,6 +43,10 @@
       "type": "number",
       "default": 0
     },
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this customer belongs to"
+    },
     "notes": {
       "type": "string"
     },

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const TIER_STYLE = {
   Bronze: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -25,13 +26,15 @@ export default function Customers() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [loading, setLoading] = useState(true);
+  const { organizationId } = useOrganization();
 
   useEffect(() => {
+    if (!organizationId) return;
     Promise.all([
-      base44.entities.Customer.list(),
-      base44.entities.Transaction.list('-transaction_date', 500),
+      base44.entities.Customer.filter({ organization_id: organizationId }),
+      base44.entities.Transaction.filter({ organization_id: organizationId }, '-transaction_date', 500),
     ]).then(([c, t]) => { setCustomers(c); setTransactions(t); }).finally(() => setLoading(false));
-  }, []);
+  }, [organizationId]);
 
   // Enrich customers with transaction-derived stats
   const enriched = customers.map(c => {
@@ -57,7 +60,7 @@ export default function Customers() {
 
   const save = async () => {
     if (!form.name) { toast.error('Customer name is required'); return; }
-    const data = { ...form, is_active: true };
+    const data = { ...form, is_active: true, organization_id: organizationId };
     if (editing) {
       await base44.entities.Customer.update(editing.id, data);
       toast.success('Customer updated');
@@ -66,7 +69,7 @@ export default function Customers() {
       toast.success('Customer added');
     }
     setShowModal(false);
-    const updated = await base44.entities.Customer.list();
+    const updated = await base44.entities.Customer.filter({ organization_id: organizationId });
     setCustomers(updated);
   };
 

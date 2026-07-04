@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, KeyRound, User } from 'lucide-react';
+import { ChevronDown, LogOut, KeyRound, User, Shield } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -42,13 +42,17 @@ export default function UserMenu() {
           <div className="text-xs font-medium text-foreground leading-tight max-w-[120px] truncate">
             {user?.full_name || user?.email}
           </div>
+          <div className="text-[10px] text-muted-foreground leading-tight">
+            {userRole === 'admin' ? 'Administrator' : userRole === 'manager' ? 'Manager' : 'Cashier'}
+          </div>
         </div>
         <span className={cn(
-          "px-2 py-0.5 rounded-full font-medium capitalize text-[10px]",
+          "px-2 py-0.5 rounded-full font-medium capitalize text-[10px] flex items-center gap-1",
           userRole === 'admin' ? "bg-purple-100 text-purple-700" :
           userRole === 'manager' ? "bg-blue-100 text-blue-700" :
           "bg-gray-100 text-gray-600"
         )}>
+          <Shield className="w-2.5 h-2.5" />
           {userRole}
         </span>
         <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
