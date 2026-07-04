@@ -47,6 +47,12 @@ import StockCounts from '@/pages/StockCounts';
 import TaxReports from '@/pages/TaxReports';
 import Onboarding from '@/pages/Onboarding';
 import Landing from '@/pages/Landing';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { Navigate } from 'react-router-dom';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -69,41 +75,47 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/pos" element={<POS />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/suppliers" element={<Suppliers />} />
-        <Route path="/shifts" element={<Shifts />} />
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/promotions" element={<Promotions />} />
-        <Route path="/returns" element={<Returns />} />
-        <Route path="/purchase-orders" element={<PurchaseOrders />} />
-        <Route path="/stock-transfers" element={<StockTransfers />} />
-        <Route path="/gift-cards" element={<GiftCards />} />
-        <Route path="/loyalty" element={<Loyalty />} />
-        <Route path="/marketing" element={<Marketing />} />
-        <Route path="/ecommerce" element={<Ecommerce />} />
-        <Route path="/staff-permissions" element={<StaffPermissions />} />
-        <Route path="/special-orders" element={<SpecialOrders />} />
-        <Route path="/work-orders" element={<WorkOrders />} />
-        <Route path="/invoices" element={<Invoices />} />
-        <Route path="/price-books" element={<PriceBooks />} />
-        <Route path="/bundles" element={<Bundles />} />
-        <Route path="/accounting-export" element={<AccountingExport />} />
-        <Route path="/cash-management" element={<CashManagement />} />
-        <Route path="/customer-display" element={<CustomerDisplay />} />
-        <Route path="/demand-forecasting" element={<DemandForecasting />} />
-        <Route path="/currencies" element={<Currencies />} />
-        <Route path="/payment-terminals" element={<PaymentTerminals />} />
-        <Route path="/saas-admin" element={<SaaSAdmin />} />
-        <Route path="/stock-counts" element={<StockCounts />} />
-        <Route path="/tax-reports" element={<TaxReports />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/compliance" element={<Compliance />} />
-        <Route path="/settings" element={<Settings />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/pos" element={<POS />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/suppliers" element={<Suppliers />} />
+          <Route path="/shifts" element={<Shifts />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/promotions" element={<Promotions />} />
+          <Route path="/returns" element={<Returns />} />
+          <Route path="/purchase-orders" element={<PurchaseOrders />} />
+          <Route path="/stock-transfers" element={<StockTransfers />} />
+          <Route path="/gift-cards" element={<GiftCards />} />
+          <Route path="/loyalty" element={<Loyalty />} />
+          <Route path="/marketing" element={<Marketing />} />
+          <Route path="/ecommerce" element={<Ecommerce />} />
+          <Route path="/staff-permissions" element={<StaffPermissions />} />
+          <Route path="/special-orders" element={<SpecialOrders />} />
+          <Route path="/work-orders" element={<WorkOrders />} />
+          <Route path="/invoices" element={<Invoices />} />
+          <Route path="/price-books" element={<PriceBooks />} />
+          <Route path="/bundles" element={<Bundles />} />
+          <Route path="/accounting-export" element={<AccountingExport />} />
+          <Route path="/cash-management" element={<CashManagement />} />
+          <Route path="/customer-display" element={<CustomerDisplay />} />
+          <Route path="/demand-forecasting" element={<DemandForecasting />} />
+          <Route path="/currencies" element={<Currencies />} />
+          <Route path="/payment-terminals" element={<PaymentTerminals />} />
+          <Route path="/saas-admin" element={<SaaSAdmin />} />
+          <Route path="/stock-counts" element={<StockCounts />} />
+          <Route path="/tax-reports" element={<TaxReports />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/compliance" element={<Compliance />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
