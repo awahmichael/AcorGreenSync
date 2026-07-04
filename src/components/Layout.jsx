@@ -84,7 +84,7 @@ const navGroups = [
       { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
       { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },
       { path: '/subscription', label: 'Subscription', icon: Crown, roles: ['admin', 'manager', 'user'] },
-      { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['admin'] },
+      { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['super_admin'] },
       { path: '/staff-permissions', label: 'Staff Permissions', icon: KeyRound, roles: ['admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]
@@ -102,7 +102,7 @@ export default function Layout() {
 function LayoutInner() {
   const location = useLocation();
   const isOnline = useOnlineStatus();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [expandedSections, setExpandedSections] = useState({});
   const { queue, syncQueue } = useOfflineQueue();
   const { user } = useAuth();
@@ -144,20 +144,19 @@ function LayoutInner() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:relative z-30 h-full flex flex-col transition-transform duration-300",
-        "bg-[hsl(220,15%,12%)] w-64 flex-shrink-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        "fixed lg:relative z-30 h-full flex-col transition-all duration-300 bg-[hsl(220,15%,12%)] w-64 flex-shrink-0",
+        sidebarOpen ? "translate-x-0 flex" : "-translate-x-full lg:w-0 lg:overflow-hidden"
       )}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[hsl(220,15%,18%)]">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
             <Leaf className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="overflow-hidden">
             <div className="text-white font-bold text-sm leading-tight">AcorCloud</div>
             <div className="text-primary text-xs font-medium">Green-Sync</div>
           </div>
-          <button className="lg:hidden ml-auto text-white/60" onClick={() => setSidebarOpen(false)}>
+          <button className="ml-auto text-white/60 hover:text-white p-1 rounded hover:bg-white/10" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -263,8 +262,8 @@ function LayoutInner() {
         {/* Top bar */}
         <header className="bg-white border-b border-border px-4 lg:px-6 h-14 flex items-center gap-4 flex-shrink-0">
           <button 
-            className="lg:hidden text-muted-foreground"
-            onClick={() => setSidebarOpen(true)}
+            className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             <Menu className="w-5 h-5" />
           </button>

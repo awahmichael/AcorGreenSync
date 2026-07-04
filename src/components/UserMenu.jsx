@@ -43,11 +43,12 @@ export default function UserMenu() {
             {user?.full_name || user?.email}
           </div>
           <div className="text-[10px] text-muted-foreground leading-tight">
-            {userRole === 'admin' ? 'Administrator' : userRole === 'manager' ? 'Manager' : 'Cashier'}
+            {userRole === 'super_admin' ? 'Super Admin' : userRole === 'admin' ? 'Administrator' : userRole === 'manager' ? 'Manager' : 'Cashier'}
           </div>
         </div>
         <span className={cn(
           "px-2 py-0.5 rounded-full font-medium capitalize text-[10px] flex items-center gap-1",
+          userRole === 'super_admin' ? "bg-emerald-100 text-emerald-700" :
           userRole === 'admin' ? "bg-purple-100 text-purple-700" :
           userRole === 'manager' ? "bg-blue-100 text-blue-700" :
           "bg-gray-100 text-gray-600"
