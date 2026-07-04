@@ -1,0 +1,49 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Lead's full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company or brand name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "store_count": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of store locations"
+    },
+    "message": {
+      "type": "string",
+      "description": "Additional notes or questions"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "contacted",
+        "qualified",
+        "converted",
+        "lost"
+      ],
+      "default": "new"
+    },
+    "source": {
+      "type": "string",
+      "default": "acorgreensync.com"
+    }
+  },
+  "required": [
+    "email"
+  ]
+}

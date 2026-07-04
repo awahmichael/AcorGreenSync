@@ -46,6 +46,7 @@ import SaaSAdmin from '@/pages/SaaSAdmin';
 import StockCounts from '@/pages/StockCounts';
 import TaxReports from '@/pages/TaxReports';
 import Onboarding from '@/pages/Onboarding';
+import Landing from '@/pages/Landing';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -110,6 +111,17 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
+  const isMarketingDomain = window.location.hostname.includes('acorgreensync');
+
+  if (isMarketingDomain) {
+    return (
+      <>
+        <Landing />
+        <Sonner richColors position="top-right" />
+      </>
+    );
+  }
+
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
