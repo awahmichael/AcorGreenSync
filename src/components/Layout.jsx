@@ -25,14 +25,14 @@ const navGroups = [
       { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'user'] },
       { path: '/pos', label: 'POS Terminal', icon: ShoppingCart, roles: ['admin', 'manager', 'user'] },
       { path: '/shifts', label: 'Shifts', icon: Clock, roles: ['admin', 'manager', 'user'] },
-      { path: '/special-orders', label: 'Special Orders', icon: ShoppingCart, roles: ['admin', 'manager', 'user'] },
-      { path: '/work-orders', label: 'Work Orders', icon: Wrench, roles: ['admin', 'manager', 'user'] },
       { path: '/cash-management', label: 'Cash Management', icon: Banknote, roles: ['admin', 'manager', 'user'] },
       { path: '/customer-display', label: 'Customer Display', icon: Monitor, roles: ['admin', 'manager', 'user'] },
+      { path: '/special-orders', label: 'Special Orders', icon: ShoppingCart, roles: ['admin', 'manager', 'user'] },
+      { path: '/work-orders', label: 'Work Orders', icon: Wrench, roles: ['admin', 'manager', 'user'] },
     ]
   },
   {
-    label: 'Catalogue',
+    label: 'Catalogue & Inventory',
     items: [
       { path: '/products', label: 'Products', icon: Package, roles: ['admin', 'manager'] },
       { path: '/bundles', label: 'Kits & Bundles', icon: Layers, roles: ['admin', 'manager'] },
@@ -42,34 +42,24 @@ const navGroups = [
       { path: '/stock-transfers', label: 'Stock Transfers', icon: ArrowLeftRight, roles: ['admin', 'manager'] },
       { path: '/suppliers', label: 'Suppliers', icon: Truck, roles: ['admin', 'manager'] },
       { path: '/purchase-orders', label: 'Purchase Orders', icon: ClipboardList, roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    label: 'Customer & CRM',
+    items: [
       { path: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'manager', 'user'] },
       { path: '/loyalty', label: 'Loyalty Program', icon: Star, roles: ['admin', 'manager'] },
       { path: '/promotions', label: 'Promotions', icon: Tag, roles: ['admin', 'manager'] },
       { path: '/gift-cards', label: 'Gift Cards', icon: Gift, roles: ['admin', 'manager'] },
-    ]
-  },
-  {
-    label: 'Commerce',
-    items: [
       { path: '/ecommerce', label: 'E-commerce Orders', icon: Globe, roles: ['admin', 'manager'] },
       { path: '/marketing', label: 'Marketing Campaigns', icon: Megaphone, roles: ['admin', 'manager'] },
     ]
   },
   {
-    label: 'Finance',
-    items: [
-      { path: '/invoices', label: 'B2B Invoices', icon: FileText, roles: ['admin', 'manager'] },
-      { path: '/tax-reports', label: 'Tax Reports', icon: Receipt, roles: ['admin', 'manager'] },
-      { path: '/accounting-export', label: 'Accounting Export', icon: FileText, roles: ['admin', 'manager'] },
-      { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
-      { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },
-      { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['admin'] },
-    ]
-  },
-  {
-    label: 'Reporting',
+    label: 'Sustainability & Reporting',
     items: [
       { path: '/returns', label: 'Returns', icon: RotateCcw, roles: ['admin', 'manager', 'user'] },
+      { path: '/compliance', label: 'Compliance', icon: ShieldCheck, roles: ['admin', 'manager'] },
       { path: '/demand-forecasting', label: 'Demand Forecasting', icon: BarChart, roles: ['admin', 'manager'] },
       { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager'], children: [
         { path: '/reports?cat=store_close', label: 'Store Close Reports', icon: DollarSign },
@@ -82,7 +72,17 @@ const navGroups = [
         { path: '/reports?cat=operational', label: 'Operational', icon: Settings },
         { path: '/reports?cat=carbon', label: 'Carbon & Sustainability', icon: Leaf },
       ] },
-      { path: '/compliance', label: 'Compliance', icon: ShieldCheck, roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    label: 'Finance & Platform',
+    items: [
+      { path: '/invoices', label: 'B2B Invoices', icon: FileText, roles: ['admin', 'manager'] },
+      { path: '/tax-reports', label: 'Tax Reports', icon: Receipt, roles: ['admin', 'manager'] },
+      { path: '/accounting-export', label: 'Accounting Export', icon: FileText, roles: ['admin', 'manager'] },
+      { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
+      { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },
+      { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['admin'] },
       { path: '/staff-permissions', label: 'Staff Permissions', icon: KeyRound, roles: ['admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]

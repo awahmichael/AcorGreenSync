@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization.jsx';
+import PrintSettings from '@/components/settings/PrintSettings';
 
 const BLANK_TARGET = { label: '', annual_kg_co2e: '', methodology: 'Board Approved', baseline_year: new Date().getFullYear(), reduction_pct: '', scope: 'Company-wide', notes: '', is_active: true };
 
@@ -284,6 +285,8 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      <PrintSettings />
     </div>
   );
 }

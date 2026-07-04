@@ -12,7 +12,8 @@ import { toast } from 'sonner';
 import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
 import ReceiptModal from '@/components/pos/ReceiptModal';
-import ReceiptChoice from '@/components/pos/ReceiptChoice';
+import DigitalReceiptChoice from '@/components/pos/DigitalReceiptChoice';
+import { getPrintSettings } from '@/lib/printSettings';
 
 export default function POS() {
   const [products, setProducts] = useState([]);
@@ -208,7 +209,12 @@ export default function POS() {
     setReceiptTx(transaction);
     setCart([]);
     setShowPayment(false);
-    setShowReceiptChoice(true);
+    const printMode = getPrintSettings().receipt_mode;
+    if (printMode === 'always_print') {
+      setShowReceipt(true);
+    } else {
+      setShowReceiptChoice(true);
+    }
     setSelectedCustomer(null);
     setCustomerSearch('');
     setAppliedPromo(null);
@@ -463,7 +469,8 @@ export default function POS() {
       )}
 
       {showReceiptChoice && receiptTx && (
-        <ReceiptChoice
+        <DigitalReceiptChoice
+          transaction={receiptTx}
           onPrint={() => { setShowReceiptChoice(false); setShowReceipt(true); }}
           onSkip={() => { setShowReceiptChoice(false); setReceiptTx(null); }}
           onClose={() => { setShowReceiptChoice(false); setReceiptTx(null); }}
