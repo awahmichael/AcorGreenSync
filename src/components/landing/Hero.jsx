@@ -4,8 +4,8 @@ import { ArrowRight, TrendingDown, ShieldCheck } from "lucide-react";
 export default function Hero() {
   return (
     <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-b from-green-50 to-white">
-      <div className="absolute inset-0 opacity-50" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1600&q=80')", backgroundSize: "cover", backgroundPosition: "center" }} />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/50 to-white" />
+      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1600&q=80')", backgroundSize: "cover", backgroundPosition: "center" }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/60 to-white" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
