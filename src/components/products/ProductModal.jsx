@@ -6,13 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Leaf, CheckCircle2, AlertCircle, Search, Loader2 } from 'lucide-react';
+import { Leaf, CheckCircle2, AlertCircle, Search, Loader2, Star } from 'lucide-react';
 import { useRmlEngine } from '@/hooks/useRmlEngine';
 import RmlMatchBadge from '@/components/products/RmlMatchBadge';
 
 const CATEGORIES = ['Food & Beverages', 'Clothing & Textiles', 'Electronics', 'Furniture', 'Household Goods', 'Health & Beauty', 'Sports & Leisure', 'Books & Stationery', 'Automotive', 'Other'];
 const UNITS = ['unit', 'kg', 'litre', 'tonne', 'm2', 'm3', 'kWh'];
 const SOURCES = ['DEFRA', 'Climatiq', 'Manual'];
+const ALLERGENS = ['gluten', 'crustaceans', 'eggs', 'fish', 'peanuts', 'soybeans', 'milk', 'nuts', 'celery', 'mustard', 'sesame', 'sulphites', 'lupin', 'molluscs'];
+const AGE_TYPES = ['none', 'alcohol', 'tobacco', 'knives', 'solvents', 'fireworks', 'lottery', 'other'];
 
 export default function ProductModal({ product, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -29,8 +31,15 @@ export default function ProductModal({ product, onClose, onSaved }) {
     commodity_code: product?.commodity_code || '',
     scope3_category: product?.scope3_category || 'Both',
     stock_quantity: product?.stock_quantity || 0,
+    reorder_point: product?.reorder_point || 0,
     supplier_id: product?.supplier_id || '',
     is_active: product?.is_active !== false,
+    image_url: product?.image_url || '',
+    age_restricted: product?.age_restricted || false,
+    age_restriction_type: product?.age_restriction_type || 'none',
+    min_age: product?.min_age || 0,
+    allergens: product?.allergens || [],
+    is_favourite: product?.is_favourite || false,
   });
   const [saving, setSaving] = useState(false);
   const [rmlResult, setRmlResult] = useState(null); // { factor, matchType } or null
@@ -78,6 +87,13 @@ export default function ProductModal({ product, onClose, onSaved }) {
       emission_factor_defra: parseFloat(form.emission_factor_defra) || null,
       emission_factor_climatiq: parseFloat(form.emission_factor_climatiq) || null,
       stock_quantity: parseInt(form.stock_quantity) || 0,
+      reorder_point: parseInt(form.reorder_point) || 0,
+      image_url: form.image_url || null,
+      age_restricted: form.age_restricted || false,
+      age_restriction_type: form.age_restricted ? form.age_restriction_type : 'none',
+      min_age: form.age_restricted ? parseInt(form.min_age) || 18 : 0,
+      allergens: form.allergens || [],
+      is_favourite: form.is_favourite || false,
       emission_mapping_status: hasEmission ? 'Mapped' : 'Pending',
       defra_factor_id: rmlResult?.factor?.id || product?.defra_factor_id || null,
       defra_factor_version: rmlResult?.factor?.version || product?.defra_factor_version || null,
@@ -153,6 +169,96 @@ export default function ProductModal({ product, onClose, onSaved }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Image URL */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Product Image URL</Label>
+            <Input value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://images.unsplash.com/..." />
+            {form.image_url && <img src={form.image_url} alt="" className="w-16 h-16 rounded-lg object-cover mt-1" />}
+          </div>
+
+          {/* Stock & Reorder */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Stock Quantity</Label>
+              <Input type="number" value={form.stock_quantity} onChange={e => set('stock_quantity', e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Reorder Point (auto-alert)</Label>
+              <Input type="number" value={form.reorder_point} onChange={e => set('reorder_point', e.target.value)} placeholder="e.g. 10" />
+            </div>
+          </div>
+
+          {/* Age Restriction */}
+          <div className="bg-red-50/50 border border-red-100 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                Age Restricted Product (Challenge 25)
+              </Label>
+              <button
+                onClick={() => set('age_restricted', !form.age_restricted)}
+                className={`w-10 h-5 rounded-full transition-colors ${form.age_restricted ? 'bg-red-500' : 'bg-muted'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${form.age_restricted ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            {form.age_restricted && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Restriction Type</Label>
+                  <Select value={form.age_restriction_type} onValueChange={v => set('age_restriction_type', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {AGE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Minimum Age</Label>
+                  <Input type="number" value={form.min_age} onChange={e => set('min_age', e.target.value)} placeholder="18" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Allergens (Natasha's Law) */}
+          <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-4 space-y-2">
+            <Label className="text-sm font-medium">Allergens (UK Natasha's Law)</Label>
+            <div className="flex flex-wrap gap-2">
+              {ALLERGENS.map(a => {
+                const selected = form.allergens.includes(a);
+                return (
+                  <button
+                    key={a}
+                    onClick={() => set('allergens', selected ? form.allergens.filter(x => x !== a) : [...form.allergens, a])}
+                    className={`text-xs px-2.5 py-1 rounded-full border font-medium capitalize transition-all ${
+                      selected ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-muted-foreground border-border hover:border-amber-300'
+                    }`}
+                  >
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Key / Favourite */}
+          <div className="flex items-center justify-between bg-amber-50/30 border border-amber-100 rounded-xl px-4 py-3">
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500" />
+                Pin to Quick Keys
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Show on POS quick-access bar for one-tap adding</p>
+            </div>
+            <button
+              onClick={() => set('is_favourite', !form.is_favourite)}
+              className={`w-10 h-5 rounded-full transition-colors ${form.is_favourite ? 'bg-amber-500' : 'bg-muted'}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full transition-transform ${form.is_favourite ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
           </div>
 
           {/* Supplier link */}

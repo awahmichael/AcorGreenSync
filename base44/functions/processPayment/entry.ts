@@ -173,7 +173,58 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { terminal_id, amount, currency, transaction_ref, store_id } = await req.json();
+    const body = await req.json();
+    const { terminal_id, amount, currency, transaction_ref, store_id } = body;
+
+    // --- Refund handling ---
+    if (body.action === 'refund') {
+      const { gateway_transaction_id, gateway_provider, amount: refundAmount } = body;
+      if (!gateway_transaction_id || !refundAmount) {
+        return Response.json({ error: 'Missing gateway_transaction_id or amount for refund' }, { status: 400 });
+      }
+
+      try {
+        // Fetch gateway config for the provider
+        const configs = await base44.asServiceRole.entities.PaymentGatewayConfig.filter({ provider: gateway_provider || 'Stripe', is_active: true });
+        if (!configs || configs.length === 0) {
+          return Response.json({ error: `No active gateway config for ${gateway_provider}` }, { status: 500 });
+        }
+        const config = configs[0];
+
+        // --- Stripe Refund ---
+        if (gateway_provider === 'Stripe' || !gateway_provider) {
+          const refundResp = await fetch(`${GATEWAY_URLS.Stripe[config.environment]}/refunds`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${config.secret_key}`,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              'payment_intent': gateway_transaction_id,
+              'amount': Math.round(refundAmount * 100).toString(),
+              'metadata[transaction_ref]': transaction_ref || '',
+              'metadata[source]': 'acorcloud_pos_refund'
+            })
+          });
+          const refundData = await refundResp.json();
+          if (!refundResp.ok) {
+            console.error('[processPayment] Stripe refund failed:', refundData);
+            return Response.json({ error: refundData.error?.message || 'Stripe refund failed' }, { status: 502 });
+          }
+          return Response.json({
+            success: true,
+            provider: 'Stripe',
+            gateway_transaction_id: refundData.id,
+            status: refundData.status === 'succeeded' ? 'refunded' : 'pending',
+          });
+        }
+
+        return Response.json({ error: `Refunds not yet supported for ${gateway_provider}` }, { status: 501 });
+      } catch (refundError) {
+        console.error('[processPayment] Refund error:', refundError);
+        return Response.json({ error: refundError.message }, { status: 500 });
+      }
+    }
 
     // --- Validate input ---
     if (!terminal_id || !amount || !transaction_ref) {

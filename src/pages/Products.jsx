@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload } from 'lucide-react';
+import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Package, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -114,6 +114,7 @@ export default function Products() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/40">
+                <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Img</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Product</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Category</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price</th>
@@ -130,16 +131,32 @@ export default function Products() {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={10} className="px-4 py-3">
+                    <td colSpan={11} className="px-4 py-3">
                       <div className="h-4 bg-muted rounded animate-pulse" />
                     </td>
                   </tr>
                 ))
               ) : filtered.map(p => (
                 <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 text-center">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" className="w-8 h-8 rounded-lg object-cover inline-block" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center inline-flex">
+                        <Package className="w-3.5 h-3.5 text-muted-foreground/40" />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-sm text-foreground">{p.name}</div>
+                    <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
+                      {p.name}
+                      {p.is_favourite && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
+                      {p.age_restricted && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-red-50 text-red-600">18+</span>}
+                    </div>
                     {p.sku && <div className="text-xs text-muted-foreground">{p.sku}</div>}
+                    {p.allergens && p.allergens.length > 0 && (
+                      <div className="text-[10px] text-amber-600 mt-0.5">⚠ {p.allergens.join(', ')}</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{p.category || '—'}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-right">£{(p.price || 0).toFixed(2)}</td>

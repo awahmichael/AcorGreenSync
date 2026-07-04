@@ -96,6 +96,11 @@
       "type": "number",
       "default": 0
     },
+    "reorder_point": {
+      "type": "number",
+      "default": 0,
+      "description": "Stock level threshold that triggers auto-reorder alerts"
+    },
     "store_id": {
       "type": "string",
       "description": "Store/location reference"
@@ -131,6 +136,86 @@
       "type": "boolean",
       "default": true,
       "description": "True if this is the latest active version"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Product image URL for visual POS grid display"
+    },
+    "age_restricted": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, POS prompts age verification (Challenge 25) before checkout"
+    },
+    "age_restriction_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "alcohol",
+        "tobacco",
+        "knives",
+        "solvents",
+        "fireworks",
+        "lottery",
+        "other"
+      ],
+      "default": "none",
+      "description": "Category of age restriction for UK compliance"
+    },
+    "min_age": {
+      "type": "number",
+      "default": 0,
+      "description": "Minimum customer age required (e.g. 18 for alcohol, 16 for lottery)"
+    },
+    "allergens": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "gluten",
+          "crustaceans",
+          "eggs",
+          "fish",
+          "peanuts",
+          "soybeans",
+          "milk",
+          "nuts",
+          "celery",
+          "mustard",
+          "sesame",
+          "sulphites",
+          "lupin",
+          "molluscs"
+        ]
+      },
+      "default": [],
+      "description": "UK Natasha's Law allergen declarations (14 statutory allergens)"
+    },
+    "is_favourite": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pinned to quick-keys grid on POS for one-tap access"
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "stock_quantity": {
+            "type": "number"
+          }
+        }
+      },
+      "default": [],
+      "description": "Product variants (e.g. Small/Medium/Large) with independent SKU, price, and stock"
     }
   },
   "required": [

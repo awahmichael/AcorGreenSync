@@ -103,6 +103,10 @@ export default function PrintSettings() {
           <Input value={settings.vat_number} onChange={e => update('vat_number', e.target.value)} placeholder="e.g. GB350396892" />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
+          <Label className="text-xs">Address Line (on receipt)</Label>
+          <Input value={settings.address_line || ''} onChange={e => update('address_line', e.target.value)} placeholder="e.g. 123 High Street, Edinburgh, EH1 1AA" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
           <Label className="text-xs">Footer Message</Label>
           <Input value={settings.footer_message} onChange={e => update('footer_message', e.target.value)} placeholder="e.g. Thank you for shopping with us" />
         </div>

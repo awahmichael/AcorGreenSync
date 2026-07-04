@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X, User, Tag, PoundSterling } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X, User, Tag, PoundSterling, Clock, Pause, Star, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -8,11 +8,15 @@ import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { useRml } from '@/hooks/useRml';
 import { useOrganization } from '@/hooks/useOrganization.jsx';
+import { useAuth } from '@/lib/AuthContext';
 import { toast } from 'sonner';
 import CartItem from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
 import ReceiptModal from '@/components/pos/ReceiptModal';
 import DigitalReceiptChoice from '@/components/pos/DigitalReceiptChoice';
+import QuickKeys from '@/components/pos/QuickKeys';
+import ParkedTransactions from '@/components/pos/ParkedTransactions';
+import ZReport from '@/components/pos/ZReport';
 import { getPrintSettings } from '@/lib/printSettings';
 
 export default function POS() {
@@ -31,10 +35,15 @@ export default function POS() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState(null);
+  const [parkedTxns, setParkedTxns] = useState([]);
   const isOnline = useOnlineStatus();
   const { addToQueue } = useOfflineQueue();
   const { processingEngine, syncCoordinator, refreshCache } = useRml();
-  const { organizationId } = useOrganization();
+  const { organizationId, currentOrg } = useOrganization();
+  const { user } = useAuth();
+
+  const cashierName = user?.full_name || user?.email || 'Cashier';
+  const cashierId = user?.id || '';
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
@@ -71,12 +80,16 @@ export default function POS() {
         emission_factor_source: product.emission_factor_source || 'Pending',
         kg_co2e: product.emission_factor_defra || product.emission_factor_climatiq || 0,
         scope3_category: product.scope3_category || 'Both',
+        age_restricted: product.age_restricted || false,
+        age_restriction_type: product.age_restriction_type || 'none',
+        min_age: product.min_age || 0,
+        allergens: product.allergens || [],
         _productData: product,
       }];
     });
   };
 
-  // Barcode scan handler — matches UPC or SKU
+  // Barcode scan handler
   const handleScan = (code) => {
     const match = products.find(p => p.upc === code || p.sku === code);
     if (match) {
@@ -89,7 +102,6 @@ export default function POS() {
     }
   };
 
-  // Global keyboard listener for hardware scanners
   useBarcodeScanner({ onScan: handleScan, enabled: !showPayment });
 
   const updateQty = (productId, delta) => {
@@ -106,7 +118,13 @@ export default function POS() {
   const cartTotal = cart.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
   const cartCO2e = cart.reduce((sum, i) => sum + (i.kg_co2e * i.quantity), 0);
 
-  // Auto-apply eligible promotions (percentage, fixed, multibuy only — bogo/promo_code need manual action)
+  // Age restriction check
+  const hasAgeRestricted = cart.some(i => i.age_restricted);
+  const ageRestrictionType = hasAgeRestricted
+    ? cart.filter(i => i.age_restricted).map(i => i.age_restriction_type).filter(Boolean)[0]
+    : null;
+
+  // Auto-apply eligible promotions
   const eligiblePromos = promotions.filter(p => {
     if (!p.is_active) return false;
     const today = new Date().toISOString().split('T')[0];
@@ -119,17 +137,15 @@ export default function POS() {
   });
 
   const autoDiscount = eligiblePromos.reduce((sum, p) => {
-    // If product-specific, calculate discount on that product's line total only
     const baseAmount = p.product_id
       ? cart.filter(i => i.product_id === p.product_id).reduce((s, i) => s + i.unit_price * i.quantity, 0)
       : cartTotal;
     if (p.type === 'percentage') return sum + (baseAmount * p.value / 100);
     if (p.type === 'fixed') return sum + Math.min(p.value, baseAmount);
-    if (p.type === 'multibuy' && cartTotal >= p.value) return sum + (cartTotal * 0.05); // 5% multibuy bonus
+    if (p.type === 'multibuy' && cartTotal >= p.value) return sum + (cartTotal * 0.05);
     return sum;
   }, 0);
 
-  // Promo code discount
   const promoDiscount = appliedPromo ? (appliedPromo.type === 'percentage' ? cartTotal * appliedPromo.value / 100 : Math.min(appliedPromo.value, cartTotal)) : 0;
   const totalDiscount = autoDiscount + promoDiscount;
   const finalTotal = Math.max(0, cartTotal - totalDiscount);
@@ -152,40 +168,158 @@ export default function POS() {
       ).slice(0, 5)
     : [];
 
-  const processTransaction = async (paymentMethod) => {
+  // Park current transaction
+  const parkTransaction = () => {
+    if (cart.length === 0) return;
+    setParkedTxns(prev => [...prev, { items: cart, total: finalTotal, reason: 'Parked by cashier' }]);
+    setCart([]);
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setAppliedPromo(null);
+    setPromoCode('');
+    toast.success('Transaction parked — resume anytime');
+  };
+
+  const resumeTransaction = (idx) => {
+    const parked = parkedTxns[idx];
+    setCart(parked.items);
+    setParkedTxns(prev => prev.filter((_, i) => i !== idx));
+    toast.success('Transaction resumed');
+  };
+
+  const deleteParked = (idx) => {
+    setParkedTxns(prev => prev.filter((_, i) => i !== idx));
+    toast.success('Parked transaction discarded');
+  };
+
+  const processTransaction = async (paymentDetails) => {
     const txRef = `TXN-${Date.now()}`;
+    const paymentMethod = paymentDetails.method === 'split' ? 'card' : paymentDetails.method;
+    const tipAmount = paymentDetails.tipAmount || 0;
+    const carbonOffset = paymentDetails.carbonOffset || 0;
+    const ageVerified = paymentDetails.ageVerified || false;
+    const splitPayments = paymentDetails.method === 'split' ? paymentDetails.splitPayments : [];
+
+    const grandTotal = finalTotal + tipAmount + carbonOffset;
     let transaction;
 
     try {
-      // RML Module 4: ProcessingEngine executes checkout — calculates carbon,
-      // validates stock, deducts local inventory, writes atomic ledger to IndexedDB
+      // RML ProcessingEngine executes checkout
       transaction = await processingEngine.executeCheckout('main-store', cart, {
         transaction_ref: txRef,
         organization_id: organizationId,
-        store_name: 'Main Store',
-        cashier_name: 'Cashier',
+        store_name: currentOrg?.name || 'Main Store',
+        cashier_id: cashierId,
+        cashier_name: cashierName,
         payment_method: paymentMethod,
         online: isOnline,
         customer_id: selectedCustomer?.id,
         customer_name: selectedCustomer?.name,
         discount_amount: totalDiscount,
         applied_promotions: [...eligiblePromos.map(p => p.name), appliedPromo?.name].filter(Boolean),
-        final_total: finalTotal,
+        final_total: grandTotal,
+        tip_amount: tipAmount,
+        carbon_offset_amount: carbonOffset,
+        age_verified: ageVerified,
+        age_verified_by: ageVerified ? cashierName : null,
+        split_payments: splitPayments,
       });
 
+      // --- PROCESS CARD PAYMENT VIA GATEWAY ---
+      if (isOnline && (paymentMethod === 'card' || paymentMethod === 'contactless' || splitPayments.some(sp => sp.method === 'card' || sp.method === 'contactless'))) {
+        try {
+          // Find active terminal for this store
+          const terminals = await base44.entities.PaymentTerminal.filter({ is_active: true, is_paired: true, status: 'online' });
+          if (terminals.length > 0) {
+            const terminal = terminals[0];
+            const paymentResp = await base44.functions.invoke('processPayment', {
+              terminal_id: terminal.terminal_id,
+              amount: grandTotal,
+              currency: 'GBP',
+              transaction_ref: txRef,
+              store_id: terminal.store_id,
+            });
+
+            if (paymentResp.data?.success) {
+              // Update transaction with gateway details
+              transaction.gateway_transaction_id = paymentResp.data.gateway_transaction_id;
+              transaction.gateway_provider = paymentResp.data.provider;
+              transaction.payment_status = paymentResp.data.status === 'completed' ? 'completed' : 'pending_terminal';
+              transaction.client_secret = paymentResp.data.client_secret;
+              toast.success(`Card payment ${paymentResp.data.status === 'completed' ? 'approved' : 'pending — awaiting terminal'}`);
+            } else if (paymentResp.data?.error) {
+              console.warn('[POS] Payment gateway error:', paymentResp.data.error);
+              transaction.payment_status = 'pending_terminal';
+              toast.warning(`Payment gateway: ${paymentResp.data.error}. Transaction saved — process payment manually.`);
+            }
+          } else {
+            transaction.payment_status = 'pending_terminal';
+            toast.warning('No paired terminal found — payment recorded as pending. Complete on terminal manually.');
+          }
+        } catch (gatewayErr) {
+          console.error('[POS] Gateway payment failed:', gatewayErr);
+          transaction.payment_status = 'pending_terminal';
+          toast.warning('Card payment could not reach gateway — transaction saved, process payment on terminal manually.');
+        }
+      }
+
       if (isOnline) {
-        // RML Module 5: SyncCoordinator dispatches to Base44 cloud (idempotent)
+        // Sync to cloud
         await syncCoordinator.dispatchSingle(transaction);
 
-        // Deduct stock on cloud Product entities
+        // Deduct stock on cloud Product entities + create StockMovement records
         await Promise.allSettled(
-          cart.map(item => {
+          cart.map(async (item) => {
             const product = products.find(p => p.id === item.product_id);
-            if (!product) return Promise.resolve();
+            if (!product) return;
             const newQty = Math.max(0, (product.stock_quantity || 0) - item.quantity);
+
+            // Create StockMovement audit record
+            await base44.entities.StockMovement.create({
+              product_id: item.product_id,
+              product_name: item.product_name,
+              store_id: product.store_id || '',
+              store_name: currentOrg?.name || 'Main Store',
+              movement_type: 'sale_out',
+              quantity: item.quantity,
+              unit: product.unit || 'unit',
+              reference: txRef,
+              notes: `POS sale — ${txRef}`,
+              organization_id: organizationId,
+              movement_date: new Date().toISOString(),
+            }).catch(() => {});
+
+            // Update product stock
             return base44.entities.Product.update(item.product_id, { stock_quantity: newQty });
           })
         );
+
+        // --- UPDATE CUSTOMER LOYALTY & STATS ---
+        if (selectedCustomer) {
+          const pointsEarned = Math.floor(grandTotal); // 1 point per £1
+          const newLoyaltyPoints = (selectedCustomer.loyalty_points || 0) + pointsEarned;
+          const newTotalSpend = (selectedCustomer.total_spend || 0) + grandTotal;
+          const newTotalCO2e = (selectedCustomer.total_kg_co2e || 0) + cartCO2e;
+          const newTxnCount = (selectedCustomer.transaction_count || 0) + 1;
+
+          // Tier upgrade logic
+          let newTier = selectedCustomer.tier || 'Bronze';
+          if (newTotalSpend >= 5000) newTier = 'Platinum';
+          else if (newTotalSpend >= 2000) newTier = 'Gold';
+          else if (newTotalSpend >= 500) newTier = 'Silver';
+
+          await base44.entities.Customer.update(selectedCustomer.id, {
+            loyalty_points: newLoyaltyPoints,
+            total_spend: newTotalSpend,
+            total_kg_co2e: newTotalCO2e,
+            transaction_count: newTxnCount,
+            tier: newTier,
+          }).catch(() => {});
+
+          if (newTier !== selectedCustomer.tier) {
+            toast.success(`🎉 Customer upgraded to ${newTier} tier!`);
+          }
+        }
 
         // Update local products state to reflect new stock
         setProducts(prev => prev.map(p => {
@@ -194,10 +328,20 @@ export default function POS() {
           return { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - cartItem.quantity) };
         }));
 
+        // Check for low stock / reorder alerts
+        const lowStockProducts = cart.filter(item => {
+          const product = products.find(p => p.id === item.product_id);
+          if (!product) return false;
+          const newQty = (product.stock_quantity || 0) - item.quantity;
+          return newQty <= (product.reorder_point || 5);
+        });
+        if (lowStockProducts.length > 0) {
+          const names = lowStockProducts.map(i => i.product_name).join(', ');
+          toast.warning(`⚠ Low stock — reorder needed: ${names}`, { duration: 5000 });
+        }
+
         toast.success('Transaction complete!');
       } else {
-        // Transaction already written to IndexedDB with PENDING status by ProcessingEngine
-        // Also add to the legacy queue for UI sync banner
         await addToQueue(transaction);
         toast.success('Saved offline — will sync when connected', { icon: '📶' });
       }
@@ -225,6 +369,25 @@ export default function POS() {
     <div className="h-full flex flex-col lg:flex-row">
       {/* Product grid */}
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        {/* Top bar with park + Z-report */}
+        <div className="flex items-center gap-2 mb-3">
+          {cart.length > 0 && (
+            <Button variant="outline" size="sm" onClick={parkTransaction}>
+              <Pause className="w-3.5 h-3.5 mr-1.5" /> Park
+            </Button>
+          )}
+          <ParkedTransactions
+            parkedTxns={parkedTxns}
+            onResume={resumeTransaction}
+            onDelete={deleteParked}
+          />
+          <div className="flex-1" />
+          <ZReport />
+        </div>
+
+        {/* Quick Keys */}
+        <QuickKeys products={products} onAdd={addToCart} />
+
         {/* Unified search + barcode scan field */}
         <div className="mb-4">
           <div className="flex items-center gap-3">
@@ -271,13 +434,30 @@ export default function POS() {
               <button
                 key={product.id}
                 onClick={() => addToCart(product)}
-                className="bg-white border border-border rounded-xl p-4 text-left hover:border-primary hover:shadow-sm transition-all active:scale-95 group"
+                className="bg-white border border-border rounded-xl p-3 text-left hover:border-primary hover:shadow-sm transition-all active:scale-95 group relative"
               >
+                {/* Product image */}
+                {product.image_url ? (
+                  <div className="w-full h-16 mb-2 rounded-lg overflow-hidden bg-muted">
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-full h-16 mb-2 rounded-lg bg-gradient-to-br from-green-50 to-muted flex items-center justify-center">
+                    <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
+                  </div>
+                )}
                 <div className="text-sm font-semibold text-foreground line-clamp-2 mb-1">{product.name}</div>
                 <div className="text-xs text-muted-foreground mb-1">{product.category}</div>
-                {product.upc && (
-                  <div className="text-xs text-muted-foreground font-mono mb-1 truncate">{product.upc}</div>
-                )}
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-1 mb-1">
+                  {product.is_favourite && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
+                  {product.age_restricted && (
+                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-red-50 text-red-600">18+</span>
+                  )}
+                  {product.allergens && product.allergens.length > 0 && (
+                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-50 text-amber-600">⚠</span>
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-foreground">£{product.price?.toFixed(2)}</span>
                   <div className="flex items-center gap-1 text-xs text-primary">
@@ -362,6 +542,14 @@ export default function POS() {
             </div>
           )}
         </div>
+
+        {/* Age restriction banner */}
+        {hasAgeRestricted && (
+          <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+            <span className="text-xs text-amber-800 font-medium">Age-restricted items — Challenge 25 will apply at checkout</span>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto divide-y divide-border">
           {cart.map(item => (
@@ -465,6 +653,8 @@ export default function POS() {
           co2e={cartCO2e}
           onConfirm={processTransaction}
           onClose={() => setShowPayment(false)}
+          needsAgeVerification={hasAgeRestricted}
+          ageRestrictionType={ageRestrictionType}
         />
       )}
 

@@ -1,4 +1,4 @@
-import { Plus, Minus, Trash2, Leaf } from 'lucide-react';
+import { Plus, Minus, Trash2, Leaf, ShieldAlert } from 'lucide-react';
 
 export default function CartItem({ item, onIncrease, onDecrease, onRemove }) {
   return (
@@ -6,6 +6,11 @@ export default function CartItem({ item, onIncrease, onDecrease, onRemove }) {
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-foreground truncate">{item.product_name}</div>
         <div className="text-xs text-muted-foreground">{item.category}</div>
+        {item.age_restricted && (
+          <div className="flex items-center gap-1 mt-0.5 text-xs text-red-600 font-medium">
+            <ShieldAlert className="w-3 h-3" /> 18+ {item.age_restriction_type}
+          </div>
+        )}
         <div className="flex items-center gap-1 mt-0.5 text-xs text-primary">
           <Leaf className="w-3 h-3" />
           <span>{(item.kg_co2e * item.quantity).toFixed(3)} kg CO₂e</span>

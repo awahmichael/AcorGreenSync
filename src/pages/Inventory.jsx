@@ -76,7 +76,14 @@ export default function Inventory() {
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const lowStock = products.filter(p => (p.stock_quantity || 0) <= 5 && p.is_active);
+  const lowStock = products.filter(p => {
+    const reorderPoint = p.reorder_point || 5;
+    return (p.stock_quantity || 0) <= reorderPoint && p.is_active;
+  });
+  const reorderAlerts = products.filter(p => {
+    const reorderPoint = p.reorder_point || 0;
+    return reorderPoint > 0 && (p.stock_quantity || 0) <= reorderPoint;
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -96,7 +103,18 @@ export default function Inventory() {
           <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
           <div className="text-sm">
             <span className="font-semibold text-amber-800">Low Stock Alert: </span>
-            <span className="text-amber-700">{lowStock.map(p => `${p.name} (${p.stock_quantity})`).join(', ')}</span>
+            <span className="text-amber-700">{lowStock.map(p => `${p.name} (${p.stock_quantity}${p.reorder_point ? `, reorder at ${p.reorder_point}` : ''})`).join(', ')}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-reorder alerts */}
+      {reorderAlerts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm">
+            <span className="font-semibold text-red-800">Auto-Reorder Triggered: </span>
+            <span className="text-red-700">{reorderAlerts.map(p => `${p.name} — below reorder point of ${p.reorder_point}`).join(', ')}</span>
           </div>
         </div>
       )}
@@ -133,6 +151,7 @@ export default function Inventory() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">SKU</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Category</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Stock</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Reorder At</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Unit</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Status</th>
               </tr>
@@ -141,7 +160,8 @@ export default function Inventory() {
               {loading ? (
                 <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
               ) : filtered.map(p => {
-                const isLow = (p.stock_quantity || 0) <= 5;
+                const reorderPoint = p.reorder_point || 5;
+                const isLow = (p.stock_quantity || 0) <= reorderPoint;
                 return (
                   <tr key={p.id} className="hover:bg-muted/20">
                     <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
@@ -150,6 +170,7 @@ export default function Inventory() {
                     <td className={`px-4 py-3 text-right font-bold ${isLow ? 'text-amber-600' : 'text-foreground'}`}>
                       {p.stock_quantity || 0} {isLow && <AlertTriangle className="w-3 h-3 inline ml-1" />}
                     </td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">{p.reorder_point || '—'}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground">{p.unit || 'unit'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.is_active ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground'}`}>

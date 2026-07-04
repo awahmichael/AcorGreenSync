@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Wallet, ArrowDownCircle, ArrowUpCircle, Lock, Unlock } from 'lucide-react';
+import ZReport from '@/components/pos/ZReport';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
@@ -25,7 +26,10 @@ export default function CashManagement() {
     <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-foreground">Cash Management</h1><p className="text-sm text-muted-foreground mt-0.5">Drawer sessions, payouts, drops, and reconciliation</p></div>
-        <Button onClick={() => setShowOpen(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Open Drawer</Button>
+        <div className="flex items-center gap-2">
+          <ZReport />
+          <Button onClick={() => setShowOpen(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Open Drawer</Button>
+        </div>
       </div>
       {loading ? <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />)}</div> : (
         <div className="bg-white border border-border rounded-xl overflow-hidden">

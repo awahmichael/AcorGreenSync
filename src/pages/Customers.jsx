@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Users, Mail, Phone, Leaf, Edit2, Trash2, TrendingUp, Award } from 'lucide-react';
+import { Plus, Search, Users, Mail, Phone, Leaf, Edit2, Trash2, TrendingUp, Award, Download, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,6 +79,60 @@ export default function Customers() {
     toast.success('Customer removed');
   };
 
+  // GDPR: Export customer data
+  const exportGDPR = async (customer) => {
+    try {
+      const custTxns = transactions.filter(t => t.customer_id === customer.id);
+      const data = {
+        customer_details: {
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          tier: customer.tier,
+          loyalty_points: customer.loyalty_points,
+          total_spend: customer.total_spend,
+          total_kg_co2e: customer.total_kg_co2e,
+          transaction_count: customer.transaction_count,
+        },
+        transactions: custTxns.map(t => ({
+          ref: t.transaction_ref,
+          date: t.transaction_date,
+          total: t.total_amount,
+          items: t.items?.map(i => ({ name: i.product_name, qty: i.quantity, price: i.unit_price })),
+          carbon_kg: t.total_kg_co2e,
+        })),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gdpr-export-${customer.name.replace(/\s/g, '_')}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('GDPR data export downloaded');
+    } catch (err) {
+      toast.error('Export failed');
+    }
+  };
+
+  // GDPR: Delete customer data permanently
+  const deleteGDPR = async (customer) => {
+    if (!confirm(`Permanently delete ALL data for ${customer.name}? This includes their transaction history. This cannot be undone.`)) return;
+    try {
+      // Anonymize transactions (keep for audit, remove PII)
+      const custTxns = transactions.filter(t => t.customer_id === customer.id);
+      await Promise.allSettled(custTxns.map(t =>
+        base44.entities.Transaction.update(t.id, { customer_id: null, customer_name: '[Deleted]', payment_status: t.payment_status })
+      ));
+      // Delete customer record
+      await base44.entities.Customer.delete(customer.id);
+      setCustomers(c => c.filter(x => x.id !== customer.id));
+      toast.success('Customer data permanently deleted (GDPR right to erasure)');
+    } catch (err) {
+      toast.error('Deletion failed');
+    }
+  };
+
   const totalCO2e = enriched.reduce((s, c) => s + (c.derived_co2e || 0), 0);
   const totalSpend = enriched.reduce((s, c) => s + (c.derived_spend || 0), 0);
   const totalPoints = enriched.reduce((s, c) => s + (c.loyalty_points || 0), 0);
@@ -147,8 +201,11 @@ export default function Customers() {
                   <td className="px-4 py-3 text-right font-medium">£{(c.derived_spend || 0).toFixed(0)}</td>
                   <td className="px-4 py-3 text-right text-primary font-medium">{(c.derived_co2e || 0).toFixed(1)} kg</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary"><Edit2 className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => remove(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <div className="flex items-center justify-end gap-0.5">
+                      <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => exportGDPR(c)} className="p-1.5 rounded-lg hover:bg-blue-50 text-muted-foreground hover:text-blue-600" title="Export Data (GDPR)"><Download className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => deleteGDPR(c)} className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-destructive" title="Delete (GDPR)"><ShieldAlert className="w-3.5 h-3.5" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -188,6 +188,57 @@
       "default": "initiated",
       "description": "Lifecycle status of the card payment flow"
     },
+    "tip_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Gratuity added at checkout"
+    },
+    "age_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Challenge 25 age verification completed at checkout"
+    },
+    "age_verified_by": {
+      "type": "string",
+      "description": "Staff member who confirmed age verification"
+    },
+    "carbon_offset_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Optional customer contribution to offset this transaction's carbon footprint"
+    },
+    "split_payments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "gateway_transaction_id": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Multiple payment methods for a single transaction"
+    },
+    "parked": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if transaction was parked/suspended for later resumption"
+    },
+    "parked_reason": {
+      "type": "string",
+      "description": "Reason for parking (e.g. customer stepped away)"
+    },
+    "manager_override_pin": {
+      "type": "string",
+      "description": "Manager PIN hash used for discount/void overrides"
+    },
     "notes": {
       "type": "string"
     }

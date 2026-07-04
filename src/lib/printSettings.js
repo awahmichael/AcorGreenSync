@@ -5,7 +5,9 @@ export const DEFAULT_SETTINGS = {
   receipt_style: 'standard',
   business_name: '',
   vat_number: '',
+  address_line: '',
   footer_message: 'Thank you for shopping with us',
+  show_carbon: true,
 };
 
 export function getPrintSettings() {

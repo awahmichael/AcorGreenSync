@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, RotateCcw, ArrowLeft, Leaf, PoundSterling, RefreshCw } from 'lucide-react';
+import { Search, RotateCcw, ArrowLeft, Leaf, PoundSterling, RefreshCw, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -105,12 +105,69 @@ export default function Returns() {
         store_name: foundTxn.store_name,
       });
 
-      // Restock returned items
+      // --- Process gateway refund if original was card/contactless ---
+      if (refundMethod === 'original' || refundMethod === 'card') {
+        if (foundTxn.gateway_transaction_id && foundTxn.gateway_provider === 'Stripe') {
+          try {
+            const refundResp = await base44.functions.invoke('processPayment', {
+              action: 'refund',
+              gateway_transaction_id: foundTxn.gateway_transaction_id,
+              amount: refundTotal,
+              gateway_provider: foundTxn.gateway_provider,
+            });
+            if (refundResp.data?.success) {
+              toast.success(`Card refund processed via ${foundTxn.gateway_provider}`);
+            } else {
+              toast.warning(`Gateway refund pending: ${refundResp.data?.error || 'manual processing needed'}`);
+            }
+          } catch (err) {
+            console.error('[Returns] Gateway refund failed:', err);
+            toast.warning('Gateway refund failed — process manually on terminal');
+          }
+        }
+      }
+
+      // --- Update transaction payment status ---
+      if (foundTxn.id) {
+        await base44.entities.Transaction.update(foundTxn.id, { payment_status: 'refunded' }).catch(() => {});
+      }
+
+      // --- Deduct loyalty points from customer if linked ---
+      if (foundTxn.customer_id) {
+        try {
+          const customer = await base44.entities.Customer.get(foundTxn.customer_id);
+          if (customer) {
+            const pointsToDeduct = Math.floor(refundTotal);
+            await base44.entities.Customer.update(customer.id, {
+              loyalty_points: Math.max(0, (customer.loyalty_points || 0) - pointsToDeduct),
+              total_spend: Math.max(0, (customer.total_spend || 0) - refundTotal),
+              total_kg_co2e: Math.max(0, (customer.total_kg_co2e || 0) - carbonReversal),
+              transaction_count: Math.max(0, (customer.transaction_count || 0) - 1),
+            });
+          }
+        } catch (err) {
+          console.warn('[Returns] Customer stats update failed:', err);
+        }
+      }
+
+      // --- Restock returned items + create stock movements ---
       await Promise.allSettled(items.map(async (item) => {
         const products = await base44.entities.Product.filter({ name: item.product_name });
         if (products[0]) {
           const newQty = (products[0].stock_quantity || 0) + item.quantity;
           await base44.entities.Product.update(products[0].id, { stock_quantity: newQty });
+
+          // Create stock movement for restock
+          await base44.entities.StockMovement.create({
+            product_id: products[0].id,
+            product_name: item.product_name,
+            movement_type: 'adjustment',
+            quantity: item.quantity,
+            unit: products[0].unit || 'unit',
+            reference: returnRef,
+            notes: `Return restock — ${returnRef}`,
+            movement_date: new Date().toISOString(),
+          }).catch(() => {});
         }
       }));
 

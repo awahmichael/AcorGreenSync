@@ -1,0 +1,21 @@
+{
+  "name": "AcorCloud Green-Sync POS",
+  "short_name": "AcorCloud",
+  "description": "The UK's First Carbon-Native POS — offline-first ePOS with built-in Scope 3 emissions tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1a14",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity", "shopping"],
+  "lang": "en-GB",
+  "dir": "ltr"
+}

@@ -19,7 +19,9 @@ export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onC
   const receiptUrl = `${window.location.origin}/receipt/${transaction?.transaction_ref}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(receiptUrl)}`;
 
-  const whatsappText = `Your receipt from ${businessName}\nTransaction: ${transaction?.transaction_ref}\nTotal: \u00A3${(transaction?.total_amount || 0).toFixed(2)}\nCarbon: ${(transaction?.total_kg_co2e || 0).toFixed(3)} kg CO\u2082e\nView: ${receiptUrl}`;
+  const tipText = transaction?.tip_amount ? `\nTip: \u00A3${(transaction.tip_amount || 0).toFixed(2)}` : '';
+  const offsetText = transaction?.carbon_offset_amount ? `\nCarbon Offset: \u00A3${(transaction.carbon_offset_amount || 0).toFixed(2)}` : '';
+  const whatsappText = `Your receipt from ${businessName}\nTransaction: ${transaction?.transaction_ref}\nTotal: \u00A3${(transaction?.total_amount || 0).toFixed(2)}${tipText}${offsetText}\nCarbon: ${(transaction?.total_kg_co2e || 0).toFixed(3)} kg CO\u2082e\nView: ${receiptUrl}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
   const sendEmail = async () => {
@@ -36,7 +38,7 @@ export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onC
       await base44.integrations.Core.SendEmail({
         to: email,
         subject: `Your receipt \u2014 ${transaction?.transaction_ref}`,
-        body: `Thank you for shopping with us!\n\nTransaction: ${transaction?.transaction_ref}\nDate: ${new Date(transaction?.transaction_date).toLocaleString('en-GB')}\nTotal: \u00A3${(transaction?.total_amount || 0).toFixed(2)}\n\nItems:\n${items}\n\nCarbon Footprint: ${(transaction?.total_kg_co2e || 0).toFixed(3)} kg CO\u2082e\n\nView online: ${receiptUrl}\n\n${businessName} \u2014 Working towards a greener future together`
+        body: `Thank you for shopping with us!\n\nTransaction: ${transaction?.transaction_ref}\nDate: ${new Date(transaction?.transaction_date).toLocaleString('en-GB')}\nTotal: \u00A3${(transaction?.total_amount || 0).toFixed(2)}${transaction?.tip_amount ? `\nTip: \u00A3${(transaction.tip_amount || 0).toFixed(2)}` : ''}${transaction?.carbon_offset_amount ? `\nCarbon Offset: \u00A3${(transaction.carbon_offset_amount || 0).toFixed(2)}` : ''}\n\nItems:\n${items}\n\nCarbon Footprint: ${(transaction?.total_kg_co2e || 0).toFixed(3)} kg CO\u2082e\n\nView online: ${receiptUrl}\n\n${businessName} \u2014 The UK's First Carbon-Native POS`
       });
       toast.success(`Receipt sent to ${email}`);
       setView('choice');
