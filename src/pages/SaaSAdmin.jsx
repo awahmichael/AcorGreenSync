@@ -7,9 +7,12 @@ import DunningPanel from '@/components/saasadmin/DunningPanel';
 import AuditTrailPanel from '@/components/saasadmin/AuditTrailPanel';
 import SystemHealthPanel from '@/components/saasadmin/SystemHealthPanel';
 import SaaSAccounts from '@/components/saasadmin/SaaSAccounts';
+import LeadsPanel from '@/components/saasadmin/LeadsPanel';
+import { Users } from 'lucide-react';
 
 const TABS = [
   { id: 'organizations', label: 'Organizations', icon: Building2 },
+  { id: 'leads', label: 'Leads CRM', icon: Users },
   { id: 'revenue', label: 'Revenue & Billing', icon: DollarSign },
   { id: 'accounts', label: 'Accounts', icon: Calculator },
   { id: 'plans', label: 'Plans & Pricing', icon: Layers },
@@ -49,6 +52,7 @@ export default function SaaSAdmin() {
       </div>
 
       {activeTab === 'organizations' && <OrganizationsPanel />}
+      {activeTab === 'leads' && <LeadsPanel />}
       {activeTab === 'revenue' && <RevenueOverview />}
       {activeTab === 'accounts' && <SaaSAccounts />}
       {activeTab === 'plans' && <PlansPricingPanel />}

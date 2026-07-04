@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Check } from "lucide-react";
+import CheckoutButton from "@/components/landing/CheckoutButton";
 
 const PLANS = [
   {
@@ -63,9 +64,11 @@ export default function PricingSection() {
                 <span className="text-sm text-muted-foreground">/{annual ? "year" : "month"}</span>
               </div>
 
-              <a href="https://climatepos.tech/register" className={`mt-6 block text-center font-semibold py-2.5 rounded-lg transition-colors text-sm ${plan.popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border text-foreground hover:bg-accent"}`}>
-                Start Free Trial
-              </a>
+              <div className="mt-6">
+                <CheckoutButton planName={plan.name} billingCycle={annual ? "annual" : "monthly"} className={`w-full flex items-center justify-center gap-2 font-semibold py-2.5 rounded-lg transition-colors text-sm ${plan.popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border text-foreground hover:bg-accent"}`}>
+                  Start Free Trial
+                </CheckoutButton>
+              </div>
 
               <ul className="mt-6 space-y-3">
                 {plan.features.map((feat) => (

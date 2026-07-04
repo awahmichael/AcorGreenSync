@@ -3,36 +3,97 @@ import Stripe from 'npm:stripe@17.5.0';
 
 Deno.serve(async (req) => {
   try {
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"), { apiVersion: '2024-12-18.acacia' });
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), { apiVersion: '2024-12-18.acacia' });
     const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
-    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    const signature = req.headers.get('stripe-signature');
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 
     if (!signature || !webhookSecret) {
-      return Response.json({ error: "Missing signature or webhook secret" }, { status: 400 });
+      return Response.json({ error: 'Missing signature or webhook secret' }, { status: 400 });
     }
 
     const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     const base44 = createClientFromRequest(req);
 
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const customerEmail = session.customer_email || session.metadata?.prospect_email;
+        const planName = session.metadata?.plan_name || 'Starter';
+        const billingCycle = session.metadata?.billing_cycle || 'monthly';
+        const leadId = session.metadata?.lead_id;
+
+        // Check if org already exists for this Stripe customer
+        let orgs = await base44.asServiceRole.entities.Organization.filter({ stripe_customer_id: session.customer });
+
+        if (orgs.length === 0 && customerEmail) {
+          // Also check by billing_email in case they registered but weren't linked yet
+          orgs = await base44.asServiceRole.entities.Organization.filter({ billing_email: customerEmail });
+        }
+
+        if (orgs.length > 0) {
+          // Link existing org to Stripe customer and activate
+          await base44.asServiceRole.entities.Organization.update(orgs[0].id, {
+            stripe_customer_id: session.customer,
+            subscription_status: 'trial',
+            plan_type: planName,
+            billing_cycle: billingCycle,
+            subscription_started_at: new Date().toISOString(),
+            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            is_active: true,
+            onboarding_completed: false,
+          });
+          console.log(`Activated existing org ${orgs[0].id} for customer ${session.customer}`);
+        } else {
+          // Auto-provision new organization from public checkout
+          const maxLoc = planName === 'Growth' ? 5 : planName === 'Enterprise' ? 999 : 1;
+          const maxSkus = planName === 'Growth' ? 25000 : planName === 'Enterprise' ? 999999 : 5000;
+
+          await base44.asServiceRole.entities.Organization.create({
+            name: session.metadata?.company_name || customerEmail.split('@')[0],
+            plan_type: planName,
+            subscription_status: 'trial',
+            billing_cycle: billingCycle,
+            stripe_customer_id: session.customer,
+            billing_email: customerEmail,
+            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            subscription_started_at: new Date().toISOString(),
+            max_locations: maxLoc,
+            max_skus: maxSkus,
+            onboarding_completed: false,
+            is_active: true,
+          });
+          console.log(`Auto-provisioned new org for ${customerEmail} (${planName})`);
+        }
+
+        // Mark the lead as converted if we have a lead_id
+        if (leadId) {
+          try {
+            await base44.asServiceRole.entities.Lead.update(leadId, { status: 'converted' });
+          } catch (e) {
+            console.error('Failed to update lead status:', e.message);
+          }
+        }
+        break;
+      }
+
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object;
         const orgs = await base44.asServiceRole.entities.Organization.filter({ stripe_customer_id: sub.customer });
         if (orgs.length > 0) {
-          const org = orgs[0];
-          await base44.asServiceRole.entities.Organization.update(org.id, {
+          await base44.asServiceRole.entities.Organization.update(orgs[0].id, {
             subscription_status: sub.status === 'active' ? 'active' : sub.status === 'trialing' ? 'trial' : sub.status,
             current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
             current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
             dunning_status: 'none',
             dunning_retry_count: 0,
-            is_active: sub.status !== 'canceled'
+            is_active: sub.status !== 'canceled',
           });
         }
         break;
       }
+
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
         const orgs = await base44.asServiceRole.entities.Organization.filter({ stripe_customer_id: sub.customer });
@@ -40,11 +101,12 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Organization.update(orgs[0].id, {
             subscription_status: 'cancelled',
             cancelled_at: new Date().toISOString(),
-            is_active: false
+            is_active: false,
           });
         }
         break;
       }
+
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
         const orgs = await base44.asServiceRole.entities.Organization.filter({ stripe_customer_id: invoice.customer });
@@ -54,11 +116,12 @@ Deno.serve(async (req) => {
             dunning_status: 'none',
             dunning_retry_count: 0,
             current_period_start: invoice.period_start ? new Date(invoice.period_start * 1000).toISOString() : null,
-            current_period_end: invoice.period_end ? new Date(invoice.period_end * 1000).toISOString() : null
+            current_period_end: invoice.period_end ? new Date(invoice.period_end * 1000).toISOString() : null,
           });
         }
         break;
       }
+
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
         const orgs = await base44.asServiceRole.entities.Organization.filter({ stripe_customer_id: invoice.customer });
@@ -70,7 +133,7 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Organization.update(org.id, {
             subscription_status: 'past_due',
             dunning_status: nextStatus,
-            dunning_retry_count: (org.dunning_retry_count || 0) + 1
+            dunning_retry_count: (org.dunning_retry_count || 0) + 1,
           });
         }
         break;
