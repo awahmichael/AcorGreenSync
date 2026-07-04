@@ -84,7 +84,7 @@ const navGroups = [
       { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
       { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },
       { path: '/subscription', label: 'Subscription', icon: Crown, roles: ['admin', 'manager', 'user'] },
-      { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['super_admin'] },
+      { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['admin'], superAdminOnly: true },
       { path: '/staff-permissions', label: 'Staff Permissions', icon: KeyRound, roles: ['admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
     ]
@@ -110,7 +110,11 @@ function LayoutInner() {
   const userRole = user?.role || 'user';
   const navigate = useNavigate();
 
-  const canAccess = (roles) => !roles || roles.includes(userRole);
+  const isSuperAdmin = !!user?.collaborator_role;
+  const canAccess = (item) => {
+    if (item.superAdminOnly && !isSuperAdmin) return false;
+    return !item.roles || item.roles.includes(userRole);
+  };
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -167,7 +171,7 @@ function LayoutInner() {
             <div key={label}>
               <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[hsl(210,20%,45%)]">{label}</div>
               <div className="space-y-0.5">
-                {items.filter(item => canAccess(item.roles)).map(({ path, label: itemLabel, icon: Icon, children }) => {
+                {items.filter(item => canAccess(item)).map(({ path, label: itemLabel, icon: Icon, children }) => {
                   const active = location.pathname === path;
                   const hasChildren = children && children.length > 0;
                   const isExpanded = hasChildren && (expandedSections[path] || active);

@@ -44,6 +44,7 @@ import DemandForecasting from '@/pages/DemandForecasting';
 import Currencies from '@/pages/Currencies';
 import PaymentTerminals from '@/pages/PaymentTerminals';
 import SaaSAdmin from '@/pages/SaaSAdmin';
+import SaaSAdminRouteGuard from '@/components/SaaSAdminRouteGuard';
 import StockCounts from '@/pages/StockCounts';
 import TaxReports from '@/pages/TaxReports';
 import Onboarding from '@/pages/Onboarding';
@@ -110,7 +111,7 @@ const AuthenticatedApp = () => {
           <Route path="/demand-forecasting" element={<DemandForecasting />} />
           <Route path="/currencies" element={<Currencies />} />
           <Route path="/payment-terminals" element={<PaymentTerminals />} />
-          <Route path="/saas-admin" element={<SaaSAdmin />} />
+          <Route path="/saas-admin" element={<SaaSAdminRouteGuard />} />
           <Route path="/stock-counts" element={<StockCounts />} />
           <Route path="/tax-reports" element={<TaxReports />} />
           <Route path="/reports" element={<Reports />} />
