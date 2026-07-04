@@ -59,6 +59,7 @@ export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onC
     try {
       const resp = await base44.functions.invoke('sendWhatsAppReceipt', {
         phone,
+        organization_id: transaction?.organization_id,
         transaction_ref: transaction?.transaction_ref,
         total_amount: transaction?.total_amount,
         business_name: businessName,

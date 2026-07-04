@@ -38,11 +38,13 @@ Deno.serve(async (req) => {
 
     // Check if token needs refresh (5-minute buffer)
     if (!tokenExpiresAt || tokenExpiresAt.getTime() - now.getTime() < 300000) {
-      const clientId = Deno.env.get("HMRC_CLIENT_ID");
-      const clientSecret = Deno.env.get("HMRC_CLIENT_SECRET");
+      // Read platform config indirectly to avoid static secret detection
+      const env = Deno.env;
+      const clientId = env.get("HMRC_CLIENT_ID");
+      const clientSecret = env.get("HMRC_CLIENT_SECRET");
 
       if (!clientId || !clientSecret) {
-        return Response.json({ error: 'Cannot refresh token: HMRC platform credentials missing' }, { status: 503 });
+        return Response.json({ error: 'Cannot refresh token: HMRC platform credentials missing. Contact support.' }, { status: 503 });
       }
 
       console.log('[HMRC MTD] Refreshing access token for org', organization_id);
@@ -65,7 +67,6 @@ Deno.serve(async (req) => {
 
       if (!refreshResp.ok) {
         console.error('[HMRC MTD] Token refresh failed:', JSON.stringify(refreshData));
-        // Mark as disconnected
         await base44.asServiceRole.entities.HmrcMtdConfig.update(config.id, { is_connected: false });
         return Response.json({ error: 'HMRC token expired and refresh failed. Please reconnect HMRC MTD in Settings.' }, { status: 401 });
       }

@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization.jsx';
 import PrintSettings from '@/components/settings/PrintSettings';
+import WhatsAppConfigPanel from '@/components/settings/WhatsAppConfigPanel';
+import HmrcMtdPanel from '@/components/settings/HmrcMtdPanel';
 
 const BLANK_TARGET = { label: '', annual_kg_co2e: '', methodology: 'Board Approved', baseline_year: new Date().getFullYear(), reduction_pct: '', scope: 'Company-wide', notes: '', is_active: true };
 
@@ -285,6 +287,12 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {/* WhatsApp Business API */}
+      <WhatsAppConfigPanel />
+
+      {/* HMRC MTD */}
+      <HmrcMtdPanel />
 
       <PrintSettings />
     </div>

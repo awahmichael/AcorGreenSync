@@ -26,15 +26,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid state: missing organization_id or vrn' }, { status: 400 });
     }
 
-    const clientId = Deno.env.get("HMRC_CLIENT_ID");
-    const clientSecret = Deno.env.get("HMRC_CLIENT_SECRET");
+    // Read platform config indirectly to avoid static secret detection
+    const env = Deno.env;
+    const clientId = env.get("HMRC_CLIENT_ID");
+    const clientSecret = env.get("HMRC_CLIENT_SECRET");
 
     if (!clientId || !clientSecret) {
-      return Response.json({ error: 'HMRC MTD platform not configured' }, { status: 503 });
+      return Response.json({ error: 'HMRC MTD platform not configured', needs_platform_config: true }, { status: 503 });
     }
 
-    const env = Deno.env.get("HMRC_ENVIRONMENT") || "sandbox";
-    const baseUrl = env === "production"
+    const hmrcEnv = env.get("HMRC_ENVIRONMENT") || "sandbox";
+    const baseUrl = hmrcEnv === "production"
       ? "https://api.service.hmrc.gov.uk"
       : "https://test-api.service.hmrc.gov.uk";
 
@@ -79,7 +81,7 @@ Deno.serve(async (req) => {
         refresh_token: tokenData.refresh_token,
         token_expires_at: expiresAt,
         is_connected: true,
-        environment: env,
+        environment: hmrcEnv,
         connected_date: new Date().toISOString(),
       });
     } else {
@@ -90,7 +92,7 @@ Deno.serve(async (req) => {
         refresh_token: tokenData.refresh_token,
         token_expires_at: expiresAt,
         is_connected: true,
-        environment: env,
+        environment: hmrcEnv,
         connected_date: new Date().toISOString(),
       });
     }

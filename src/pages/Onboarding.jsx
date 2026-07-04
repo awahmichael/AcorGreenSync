@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Building2, Store, Receipt, CheckCircle2, ArrowRight, ArrowLeft, Leaf } from 'lucide-react';
+import { Building2, Store, Receipt, CheckCircle2, ArrowRight, ArrowLeft, Leaf, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOrganization } from '@/hooks/useOrganization.jsx';
 import { toast } from 'sonner';
+import HmrcOnboardingStep from '@/components/onboarding/HmrcOnboardingStep';
 
 const STEPS = [
   { id: 'org', label: 'Organization', icon: Building2 },
   { id: 'store', label: 'Store Setup', icon: Store },
   { id: 'tax', label: 'Tax Config', icon: Receipt },
+  { id: 'hmrc', label: 'HMRC MTD', icon: Landmark },
   { id: 'done', label: 'Complete', icon: CheckCircle2 },
 ];
 
@@ -85,19 +87,35 @@ export default function Onboarding() {
     }
   };
 
-  const saveTaxAndFinish = async () => {
+  const saveTaxConfig = async () => {
     setSaving(true);
     try {
       await base44.entities.Organization.update(currentOrg.id, {
         default_tax_rate: parseFloat(taxForm.default_tax_rate),
         stock_count_cycle: taxForm.stock_count_cycle,
+      });
+      await refreshCurrentOrg();
+      toast.success('Tax configuration saved');
+      return true;
+    } catch (err) {
+      toast.error('Failed to save tax config');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const completeOnboarding = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.Organization.update(currentOrg.id, {
         onboarding_completed: true,
         subscription_started_at: currentOrg.subscription_started_at || new Date().toISOString(),
       });
       await refreshCurrentOrg();
       await reloadOrgs();
       toast.success('Onboarding complete! Welcome to AcorCloud.');
-      setStep(3);
+      setStep(4);
     } catch (err) {
       toast.error('Failed to complete onboarding');
     } finally {
@@ -113,7 +131,10 @@ export default function Onboarding() {
       const ok = await saveStore();
       if (ok) setStep(2);
     } else if (step === 2) {
-      await saveTaxAndFinish();
+      const ok = await saveTaxConfig();
+      if (ok) setStep(3);
+    } else if (step === 3) {
+      await completeOnboarding();
     }
   };
 
@@ -275,6 +296,14 @@ export default function Onboarding() {
           )}
 
           {step === 3 && (
+            <HmrcOnboardingStep
+              organizationId={currentOrg.id}
+              onSkip={handleNext}
+              saving={saving}
+            />
+          )}
+
+          {step === 4 && (
             <div className="text-center py-8 space-y-4">
               <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-primary" />
@@ -290,20 +319,33 @@ export default function Onboarding() {
           )}
 
           {/* Navigation */}
-          {step < 3 && (
+          {step < 4 && (
             <div className="flex items-center justify-between pt-6 border-t border-border mt-6">
               <Button variant="ghost" onClick={handleBack} disabled={step === 0}>
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
-              <Button onClick={handleNext} disabled={saving} className="bg-primary hover:bg-primary/90">
-                {saving ? (
-                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Saving...</>
-                ) : step === 2 ? (
-                  <>Complete Setup <CheckCircle2 className="w-4 h-4 ml-2" /></>
-                ) : (
-                  <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>
-                )}
-              </Button>
+              {step === 3 ? (
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" onClick={handleNext} disabled={saving} className="text-muted-foreground">
+                    Skip for now <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button onClick={handleNext} disabled={saving} className="bg-primary hover:bg-primary/90">
+                    {saving ? (
+                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Saving...</>
+                    ) : (
+                      <>Complete Setup <CheckCircle2 className="w-4 h-4 ml-2" /></>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={handleNext} disabled={saving} className="bg-primary hover:bg-primary/90">
+                  {saving ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Saving...</>
+                  ) : (
+                    <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>
+                  )}
+                </Button>
+              )}
             </div>
           )}
         </div>

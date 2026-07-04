@@ -138,6 +138,7 @@ export default function TaxReports() {
     setHmrcResult(null);
     try {
       const resp = await base44.functions.invoke('submitVatToHmrc', {
+        organization_id: organizationId,
         period_start: fromDate,
         period_end: toDate,
         box1: totalTax,
@@ -172,7 +173,7 @@ export default function TaxReports() {
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-        <strong>VAT reporting & HMRC MTD:</strong> Export your 9-box VAT return as CSV, or submit directly to HMRC via Making Tax Digital. Direct submission requires HMRC API credentials configured in Settings → Environment Variables (HMRC_ACCESS_TOKEN and HMRC_VRN).
+        <strong>VAT reporting & HMRC MTD:</strong> Export your 9-box VAT return as CSV, or submit directly to HMRC via Making Tax Digital. To submit directly, connect your HMRC account in Settings → HMRC MTD first.
       </div>
 
       <div className="flex items-end gap-3 flex-wrap">
