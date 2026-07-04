@@ -7,7 +7,7 @@ import {
   TrendingUp, UserCog, DollarSign, ClipboardList, ArrowLeftRight, Gift,
   Star, Megaphone, Globe, Wrench, FileText, Layers,
   Tags, Banknote, Monitor, BarChart, Shield, KeyRound, CreditCard, Building2,
-  ClipboardCheck, Receipt
+  ClipboardCheck, Receipt, Crown
 } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -15,6 +15,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { OrgProvider, useOrganization } from '@/hooks/useOrganization.jsx';
 import OrgSwitcher from '@/components/OrgSwitcher';
 import UserMenu from '@/components/UserMenu';
+import TrialBanner from '@/components/TrialBanner';
 import { cn } from '@/lib/utils';
 
 // roles: undefined = all, 'admin' = admin only, 'cashier' = cashier can access
@@ -82,6 +83,7 @@ const navGroups = [
       { path: '/accounting-export', label: 'Accounting Export', icon: FileText, roles: ['admin', 'manager'] },
       { path: '/currencies', label: 'Multi-Currency', icon: Globe, roles: ['admin', 'manager'] },
       { path: '/payment-terminals', label: 'Payment Terminals', icon: CreditCard, roles: ['admin'] },
+      { path: '/subscription', label: 'Subscription', icon: Crown, roles: ['admin', 'manager', 'user'] },
       { path: '/saas-admin', label: 'SaaS Platform Admin', icon: Building2, roles: ['admin'] },
       { path: '/staff-permissions', label: 'Staff Permissions', icon: KeyRound, roles: ['admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
@@ -247,6 +249,9 @@ function LayoutInner() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Trial banner */}
+        <TrialBanner />
+
         {/* Top bar */}
         <header className="bg-white border-b border-border px-4 lg:px-6 h-14 flex items-center gap-4 flex-shrink-0">
           <button 

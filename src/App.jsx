@@ -18,6 +18,7 @@ import Products from '@/pages/Products';
 import Reports from '@/pages/Reports';
 import Compliance from '@/pages/Compliance';
 import Settings from '@/pages/Settings';
+import Subscription from '@/pages/Subscription';
 import Inventory from '@/pages/Inventory';
 import Suppliers from '@/pages/Suppliers';
 import Shifts from '@/pages/Shifts';
@@ -115,6 +116,7 @@ const AuthenticatedApp = () => {
           <Route path="/reports" element={<Reports />} />
           <Route path="/compliance" element={<Compliance />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/subscription" element={<Subscription />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Route>

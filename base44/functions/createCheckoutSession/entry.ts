@@ -5,13 +5,14 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { organization_id, billing_cycle } = await req.json();
+    const { organization_id, billing_cycle, plan_name } = await req.json();
     if (!organization_id) return Response.json({ error: 'Organization ID required' }, { status: 400 });
 
     const org = await base44.asServiceRole.entities.Organization.get(organization_id);
     if (!org) return Response.json({ error: 'Organization not found' }, { status: 404 });
 
-    const plans = await base44.asServiceRole.entities.PricingPlan.filter({ name: org.plan_type, is_active: true });
+    const targetPlanName = plan_name || org.plan_type;
+    const plans = await base44.asServiceRole.entities.PricingPlan.filter({ name: targetPlanName, is_active: true });
     if (plans.length === 0) return Response.json({ error: 'Plan not found or inactive' }, { status: 404 });
     const plan = plans[0];
 
