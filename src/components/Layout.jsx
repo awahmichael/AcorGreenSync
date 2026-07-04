@@ -14,6 +14,7 @@ import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useAuth } from '@/lib/AuthContext';
 import { OrgProvider, useOrganization } from '@/hooks/useOrganization.jsx';
 import OrgSwitcher from '@/components/OrgSwitcher';
+import UserMenu from '@/components/UserMenu';
 import { cn } from '@/lib/utils';
 
 // roles: undefined = all, 'admin' = admin only, 'cashier' = cashier can access
@@ -256,19 +257,7 @@ function LayoutInner() {
           </button>
           <div className="flex-1" />
           {currentOrg && <OrgSwitcher />}
-          {user && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="hidden sm:inline font-medium text-foreground">{user.full_name || user.email}</span>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full font-medium capitalize",
-                userRole === 'admin' ? "bg-purple-100 text-purple-700" :
-                userRole === 'manager' ? "bg-blue-100 text-blue-700" :
-                "bg-gray-100 text-gray-600"
-              )}>
-                {userRole}
-              </span>
-            </div>
-          )}
+          {user && <UserMenu />}
           <div className={cn(
             "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full",
             isOnline ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"

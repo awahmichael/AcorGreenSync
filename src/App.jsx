@@ -116,8 +116,8 @@ const AuthenticatedApp = () => {
           <Route path="/compliance" element={<Compliance />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
+        <Route path="*" element={<PageNotFound />} />
       </Route>
-      <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
