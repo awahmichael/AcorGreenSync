@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Printer, Leaf, Mail, QrCode, MessageCircle, X, Send, Copy } from 'lucide-react';
+import { Printer, Leaf, Mail, QrCode, MessageCircle, X, Send, Copy, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onClose }) {
   const [view, setView] = useState('choice');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
 
   const printSettings = getPrintSettings();
@@ -49,6 +50,35 @@ export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onC
     setSending(false);
   };
 
+  const sendWhatsApp = async () => {
+    if (!phone || phone.replace(/\D/g, '').length < 10) {
+      toast.error('Enter a valid phone number with country code');
+      return;
+    }
+    setSending(true);
+    try {
+      const resp = await base44.functions.invoke('sendWhatsAppReceipt', {
+        phone,
+        transaction_ref: transaction?.transaction_ref,
+        total_amount: transaction?.total_amount,
+        business_name: businessName,
+        items: transaction?.items,
+        total_kg_co2e: transaction?.total_kg_co2e,
+        receipt_url: receiptUrl,
+      });
+      if (resp.data?.success) {
+        toast.success('WhatsApp receipt sent');
+        setView('choice');
+        setPhone('');
+      } else {
+        toast.error(resp.data?.error || 'WhatsApp send failed');
+      }
+    } catch (err) {
+      toast.error('Failed to send WhatsApp — check API configuration');
+    }
+    setSending(false);
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(receiptUrl);
     toast.success('Receipt link copied');
@@ -76,11 +106,9 @@ export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onC
             <Button onClick={() => setView('email')} variant="outline" className="w-full justify-start">
               <Mail className="w-4 h-4 mr-2" /> Email Receipt
             </Button>
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block">
-              <Button variant="outline" className="w-full justify-start">
-                <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
-              </Button>
-            </a>
+            <Button onClick={() => setView('whatsapp')} variant="outline" className="w-full justify-start">
+              <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
+            </Button>
             {!digitalOnly && (
               <Button onClick={onPrint} variant="outline" className="w-full justify-start">
                 <Printer className="w-4 h-4 mr-2" /> Print Paper Receipt
@@ -88,6 +116,34 @@ export default function DigitalReceiptChoice({ transaction, onPrint, onSkip, onC
             )}
             <Button onClick={onSkip} variant="ghost" className="w-full text-muted-foreground">
               <X className="w-4 h-4 mr-2" /> No Receipt
+            </Button>
+          </div>
+        )}
+
+        {view === 'whatsapp' && (
+          <div className="space-y-3 pt-2">
+            <div className="text-xs text-muted-foreground text-center">
+              Enter the customer's WhatsApp number (with country code) to send an official Business API receipt
+            </div>
+            <Input
+              type="tel"
+              placeholder="+44 7700 900123"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className="text-sm"
+            />
+            <Button onClick={sendWhatsApp} disabled={sending} className="w-full bg-primary hover:bg-primary/90">
+              {sending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+              ) : (
+                <><MessageCircle className="w-4 h-4 mr-2" /> Send via WhatsApp</>
+              )}
+            </Button>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-primary hover:underline">
+              Or send via WhatsApp app →
+            </a>
+            <Button onClick={() => setView('choice')} variant="ghost" className="w-full text-muted-foreground">
+              Back
             </Button>
           </div>
         )}

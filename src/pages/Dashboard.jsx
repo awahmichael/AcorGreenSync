@@ -11,9 +11,12 @@ import NetZeroProgress from '@/components/dashboard/NetZeroProgress';
 import SyncStatusBanner from '@/components/dashboard/SyncStatusBanner';
 import BusinessDashboard from '@/components/dashboard/BusinessDashboard';
 import StoreComparison from '@/components/dashboard/StoreComparison';
+import LiveStoreMonitor from '@/components/dashboard/LiveStoreMonitor';
+import { Radio } from 'lucide-react';
 
 const TABS = [
   { id: 'business', label: 'Business', icon: BarChart2 },
+  { id: 'live', label: 'Live Monitor', icon: Radio },
   { id: 'carbon', label: 'Carbon Reporting', icon: Leaf },
   { id: 'stores', label: 'Store Comparison', icon: Store },
 ];
@@ -97,7 +100,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {tab === 'business' ? 'Sales performance & operations overview' : tab === 'carbon' ? 'Scope 3 emissions — UK Net Zero compliance' : 'Multi-store carbon & sales performance comparison'}
+            {tab === 'business' ? 'Sales performance & operations overview' : tab === 'live' ? 'Real-time multi-store sales monitor' : tab === 'carbon' ? 'Scope 3 emissions — UK Net Zero compliance' : 'Multi-store carbon & sales performance comparison'}
           </p>
         </div>
         {/* Tab switcher */}
@@ -134,6 +137,11 @@ export default function Dashboard() {
       {/* BUSINESS TAB */}
       {tab === 'business' && (
         <BusinessDashboard transactions={transactions} products={products} shifts={shifts} />
+      )}
+
+      {/* LIVE MONITOR TAB */}
+      {tab === 'live' && (
+        <LiveStoreMonitor stores={stores} transactions={transactions} />
       )}
 
       {/* STORE COMPARISON TAB */}

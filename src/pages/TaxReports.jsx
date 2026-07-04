@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Download, PoundSterling, FileText, TrendingUp, FileCheck } from 'lucide-react';
+import { Receipt, Download, PoundSterling, FileText, TrendingUp, FileCheck, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrganization } from '@/hooks/useOrganization.jsx';
 
@@ -17,6 +17,8 @@ export default function TaxReports() {
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
   const [toDate, setToDate] = useState(new Date().toISOString().slice(0, 10));
+  const [submittingMtd, setSubmittingMtd] = useState(false);
+  const [hmrcResult, setHmrcResult] = useState(null);
   const { organizationId } = useOrganization();
 
   useEffect(() => {
@@ -131,6 +133,37 @@ export default function TaxReports() {
     toast.success('VAT return exported');
   };
 
+  const submitToHmrc = async () => {
+    setSubmittingMtd(true);
+    setHmrcResult(null);
+    try {
+      const resp = await base44.functions.invoke('submitVatToHmrc', {
+        period_start: fromDate,
+        period_end: toDate,
+        box1: totalTax,
+        box2: 0,
+        box3: totalTax,
+        box4: 0,
+        box5: totalTax,
+        box6: totalSales,
+        box7: 0,
+        box8: 0,
+        box9: 0,
+        finalised: true,
+      });
+      setHmrcResult(resp.data);
+      if (resp.data?.success) {
+        toast.success('VAT return submitted to HMRC');
+      } else {
+        toast.error(resp.data?.error || 'HMRC submission failed');
+      }
+    } catch (err) {
+      setHmrcResult({ success: false, error: err.message });
+      toast.error('HMRC submission failed');
+    }
+    setSubmittingMtd(false);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-5xl mx-auto">
       <div>
@@ -139,7 +172,7 @@ export default function TaxReports() {
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-        <strong>Note:</strong> This report shows VAT collected from your sales transactions. Pass this to your accountant for HMRC filing. AcorCloud is a reporting tool, not a tax filing service.
+        <strong>VAT reporting & HMRC MTD:</strong> Export your 9-box VAT return as CSV, or submit directly to HMRC via Making Tax Digital. Direct submission requires HMRC API credentials configured in Settings → Environment Variables (HMRC_ACCESS_TOKEN and HMRC_VRN).
       </div>
 
       <div className="flex items-end gap-3 flex-wrap">
@@ -153,7 +186,29 @@ export default function TaxReports() {
         </div>
         <Button variant="outline" onClick={exportVatReturn}><Download className="w-4 h-4" /> Export VAT Return</Button>
         <Button variant="outline" onClick={exportMtdVat}><FileCheck className="w-4 h-4" /> Export HMRC MTD (9-Box)</Button>
+        <Button onClick={submitToHmrc} disabled={submittingMtd} className="bg-primary hover:bg-primary/90">
+          {submittingMtd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          Submit to HMRC MTD
+        </Button>
       </div>
+
+      {hmrcResult && (
+        <div className={`rounded-lg p-4 text-sm ${hmrcResult.success ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
+          {hmrcResult.success ? (
+            <div>
+              <strong>✓ VAT Return Submitted to HMRC</strong><br />
+              Processing Date: {hmrcResult.processing_date}<br />
+              Form Bundle: {hmrcResult.form_number}<br />
+              {hmrcResult.charge_ref && <span>Charge Reference: {hmrcResult.charge_ref}</span>}
+            </div>
+          ) : (
+            <div>
+              <strong>✗ HMRC Submission Failed</strong><br />
+              {hmrcResult.error}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white border border-border rounded-lg p-4">

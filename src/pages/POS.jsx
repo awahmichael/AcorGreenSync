@@ -17,6 +17,7 @@ import DigitalReceiptChoice from '@/components/pos/DigitalReceiptChoice';
 import QuickKeys from '@/components/pos/QuickKeys';
 import ParkedTransactions from '@/components/pos/ParkedTransactions';
 import ZReport from '@/components/pos/ZReport';
+import CameraProductSearch from '@/components/pos/CameraProductSearch';
 import { getPrintSettings } from '@/lib/printSettings';
 
 export default function POS() {
@@ -382,6 +383,7 @@ export default function POS() {
             onDelete={deleteParked}
           />
           <div className="flex-1" />
+          <CameraProductSearch products={products} onMatch={addToCart} />
           <ZReport />
         </div>
 
