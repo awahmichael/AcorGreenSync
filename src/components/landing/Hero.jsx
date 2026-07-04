@@ -4,14 +4,14 @@ import { ArrowRight, TrendingDown, ShieldCheck } from "lucide-react";
 export default function Hero() {
   return (
     <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-b from-green-50 to-white">
-      <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1600&q=80')", backgroundSize: "cover", backgroundPosition: "center" }} />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/80 to-white" />
+      <div className="absolute inset-0 opacity-50" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1600&q=80')", backgroundSize: "cover", backgroundPosition: "center" }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/50 to-white" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold mb-6">
             <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
-            DEFRA-Compliant · HMRC MTD Ready
+            The UK's First Carbon-Native POS
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight tracking-tight">
