@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
   Settings, Wifi, WifiOff, Leaf, Menu, X, ChevronRight, ChevronDown,
@@ -106,8 +106,9 @@ function LayoutInner() {
   const [expandedSections, setExpandedSections] = useState({});
   const { queue, syncQueue } = useOfflineQueue();
   const { user } = useAuth();
-  const { currentOrg } = useOrganization();
+  const { currentOrg, loading: orgLoading } = useOrganization();
   const userRole = user?.role || 'user';
+  const navigate = useNavigate();
 
   const canAccess = (roles) => !roles || roles.includes(userRole);
 
@@ -123,6 +124,13 @@ function LayoutInner() {
       setExpandedSections(prev => ({ ...prev, '/reports': true }));
     }
   }, [location.pathname]);
+
+  // Redirect to onboarding wizard if not yet completed
+  useEffect(() => {
+    if (!orgLoading && currentOrg && !currentOrg.onboarding_completed && location.pathname !== '/onboarding') {
+      navigate('/onboarding');
+    }
+  }, [currentOrg, orgLoading, location.pathname, navigate]);
 
   return (
     <div className="flex h-screen bg-muted overflow-hidden">

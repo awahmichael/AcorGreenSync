@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 
 const STORAGE_KEY = 'acorcloud_current_org_id';
@@ -8,10 +8,30 @@ export const OrgProvider = ({ children }) => {
   const [organizations, setOrganizations] = useState([]);
   const [currentOrg, setCurrentOrg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const provisioningRef = useRef(false);
 
   const loadOrgs = useCallback(async () => {
     try {
       const orgs = await base44.entities.Organization.list('-created_date', 500);
+
+      // Auto-provision a default org if user has none
+      if (orgs.length === 0 && !provisioningRef.current) {
+        provisioningRef.current = true;
+        try {
+          const response = await base44.functions.invoke('autoProvisionOrganization', {});
+          const provisionedOrg = response.data?.organization;
+          if (provisionedOrg) {
+            const refreshedOrgs = await base44.entities.Organization.list('-created_date', 500);
+            setOrganizations(refreshedOrgs || []);
+            setCurrentOrg(provisionedOrg);
+            localStorage.setItem(STORAGE_KEY, provisionedOrg.id);
+            return;
+          }
+        } catch (err) {
+          console.error('Auto-provision failed', err);
+        }
+      }
+
       setOrganizations(orgs || []);
       const savedId = localStorage.getItem(STORAGE_KEY);
       const saved = savedId ? orgs.find(o => o.id === savedId) : null;

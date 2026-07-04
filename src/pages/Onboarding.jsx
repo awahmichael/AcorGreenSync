@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Building2, Store, Receipt, CheckCircle2, ArrowRight, ArrowLeft, Leaf } from 'lucide-react';
@@ -37,6 +37,13 @@ export default function Onboarding() {
     default_tax_rate: currentOrg?.default_tax_rate?.toString() || '20',
     stock_count_cycle: currentOrg?.stock_count_cycle || 'monthly',
   });
+
+  // Redirect to dashboard if onboarding already completed
+  useEffect(() => {
+    if (currentOrg?.onboarding_completed) {
+      navigate('/');
+    }
+  }, [currentOrg, navigate]);
 
   const saveOrgDetails = async () => {
     if (!orgForm.name) { toast.error('Organization name is required'); return false; }
