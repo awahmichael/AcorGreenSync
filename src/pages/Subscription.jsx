@@ -49,6 +49,9 @@ export default function Subscription() {
 
   const trialProgress = Math.max(0, Math.min(100, ((14 - daysLeft) / 14) * 100));
 
+  const periodEnd = currentOrg?.current_period_end ? new Date(currentOrg.current_period_end) : null;
+  const subDaysLeft = periodEnd ? Math.ceil((periodEnd - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+
   return (
     <div className="p-6 max-w-5xl space-y-6">
       {/* Header */}
@@ -81,6 +84,11 @@ export default function Subscription() {
                 {isTrial && daysLeft > 0 && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                  </span>
+                )}
+                {isActive && subDaysLeft > 0 && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Renews in {subDaysLeft} day{subDaysLeft !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>

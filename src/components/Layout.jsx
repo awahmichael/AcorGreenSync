@@ -272,7 +272,7 @@ function LayoutInner() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
-          {currentOrg && <OrgSwitcher />}
+          {currentOrg && !user?.collaborator_role && <OrgSwitcher />}
           {user && <UserMenu />}
           <div className={cn(
             "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full",
