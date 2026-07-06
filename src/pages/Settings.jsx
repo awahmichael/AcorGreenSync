@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Leaf, RefreshCw, CheckCircle2, AlertCircle, Key, Database, Target, Edit2, Trash2 } from 'lucide-react';
+import { Leaf, RefreshCw, CheckCircle2, AlertCircle, Key, Database, Target, Edit2, Trash2, Lock, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +24,7 @@ export default function Settings() {
   const [targetForm, setTargetForm] = useState(BLANK_TARGET);
   const [editingTarget, setEditingTarget] = useState(null);
   const [showTargetForm, setShowTargetForm] = useState(false);
-  const { organizationId } = useOrganization();
+  const { organizationId, currentOrg } = useOrganization();
 
   useEffect(() => {
     if (!organizationId) return;
@@ -73,6 +73,11 @@ export default function Settings() {
   const addStore = async () => {
     if (!newStore.name || !newStore.location) {
       toast.error('Store name and location are required');
+      return;
+    }
+    const maxLocations = currentOrg?.max_locations || 1;
+    if (stores.length >= maxLocations) {
+      toast.error(`Your ${currentOrg?.plan_type || 'Starter'} plan allows ${maxLocations} store location${maxLocations !== 1 ? 's' : ''}. Upgrade your plan to add more.`);
       return;
     }
     await base44.entities.Store.create({ ...newStore, organization_id: organizationId, is_active: true });
@@ -272,7 +277,24 @@ export default function Settings() {
             <Input value={newStore.manager_name} onChange={e => setNewStore(s => ({ ...s, manager_name: e.target.value }))} placeholder="e.g. Jane Smith" />
           </div>
         </div>
-        <Button onClick={addStore} variant="outline" className="w-full">Add Store</Button>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{stores.length} of {currentOrg?.max_locations || 1} locations used</span>
+          {stores.length >= (currentOrg?.max_locations || 1) && (
+            <a href="/subscription" className="text-primary font-medium flex items-center gap-1 hover:underline">
+              <Lock className="w-3 h-3" /> Upgrade to add more
+            </a>
+          )}
+        </div>
+        <Button
+          onClick={addStore}
+          variant="outline"
+          className="w-full"
+          disabled={stores.length >= (currentOrg?.max_locations || 1)}
+        >
+          {stores.length >= (currentOrg?.max_locations || 1) ? (
+            <><Lock className="w-4 h-4 mr-2" /> Store limit reached — Upgrade required</>
+          ) : 'Add Store'}
+        </Button>
         {stores.length > 0 && (
           <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
             {stores.map(store => (

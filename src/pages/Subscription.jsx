@@ -52,6 +52,12 @@ export default function Subscription() {
   const periodEnd = currentOrg?.current_period_end ? new Date(currentOrg.current_period_end) : null;
   const subDaysLeft = periodEnd ? Math.ceil((periodEnd - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
 
+  // Determine the most relevant expiry date for display
+  const expiryDate = periodEnd || trialEndsAt;
+  const expiryDaysLeft = expiryDate ? Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+  const isExpiringSoon = expiryDaysLeft > 0 && expiryDaysLeft <= 7;
+  const isExpiredStatus = expiryDaysLeft <= 0 && (isTrial || isActive);
+
   return (
     <div className="p-6 max-w-5xl space-y-6">
       {/* Header */}
@@ -86,9 +92,9 @@ export default function Subscription() {
                     <Calendar className="w-3 h-3" /> {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
                   </span>
                 )}
-                {isActive && subDaysLeft > 0 && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Renews in {subDaysLeft} day{subDaysLeft !== 1 ? 's' : ''}
+                {isActive && expiryDaysLeft > 0 && (
+                  <span className={`text-xs flex items-center gap-1 ${isExpiringSoon ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                    <Calendar className="w-3 h-3" /> {isTrial && trialEndsAt && (!periodEnd || periodEnd <= trialEndsAt) ? `Trial ends in ${expiryDaysLeft} day${expiryDaysLeft !== 1 ? 's' : ''}` : `Renews in ${expiryDaysLeft} day${expiryDaysLeft !== 1 ? 's' : ''}`}
                   </span>
                 )}
               </div>
@@ -137,6 +143,39 @@ export default function Subscription() {
                 Your trial ends soon — select a plan to avoid interruption.
               </div>
             )}
+          </div>
+        )}
+
+        {/* Active subscription expiry bar */}
+        {isActive && expiryDate && (
+          <div className="mt-5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <span>{isTrial && trialEndsAt ? 'Trial Period' : 'Billing Period'}</span>
+              <span className={isExpiringSoon ? 'text-amber-600 font-medium' : ''}>
+                {expiryDaysLeft > 0
+                  ? `${expiryDaysLeft} day${expiryDaysLeft !== 1 ? 's' : ''} remaining`
+                  : 'Expired — renewal required'}
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${isExpiringSoon ? 'bg-amber-500' : 'bg-primary'}`}
+                style={{ width: `${Math.max(5, Math.min(100, (expiryDaysLeft / (isTrial ? 14 : 30)) * 100))}%` }}
+              />
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {isTrial && trialEndsAt && (!periodEnd || periodEnd <= trialEndsAt)
+                ? `Trial ends on ${trialEndsAt.toLocaleDateString('en-GB')} — your paid subscription begins after.`
+                : `Next billing date: ${expiryDate.toLocaleDateString('en-GB')}`}
+            </div>
+          </div>
+        )}
+
+        {/* Active but no expiry date set */}
+        {isActive && !expiryDate && (
+          <div className="mt-5 flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            Your subscription is active. Billing period details will appear here once your first payment is processed.
           </div>
         )}
       </div>
@@ -212,11 +251,13 @@ export default function Subscription() {
       )}
 
       {/* Current period info */}
-      {currentOrg?.current_period_end && (
-        <div className="bg-muted/40 rounded-xl p-4 flex items-center gap-3 text-sm">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <span className="text-muted-foreground">
-            Current billing period ends: <span className="font-medium text-foreground">{new Date(currentOrg.current_period_end).toLocaleDateString('en-GB')}</span>
+      {expiryDate && (
+        <div className={`rounded-xl p-4 flex items-center gap-3 text-sm ${isExpiringSoon ? 'bg-amber-50 border border-amber-100' : 'bg-muted/40'}`}>
+          {isExpiringSoon ? <AlertCircle className="w-4 h-4 text-amber-600" /> : <TrendingUp className="w-4 h-4 text-muted-foreground" />}
+          <span className={isExpiringSoon ? 'text-amber-700' : 'text-muted-foreground'}>
+            {isActive
+              ? <>Next billing date: <span className="font-medium text-foreground">{expiryDate.toLocaleDateString('en-GB')}</span> ({expiryDaysLeft} day{expiryDaysLeft !== 1 ? 's' : ''} remaining)</>
+              : <>Trial ends: <span className="font-medium text-foreground">{expiryDate.toLocaleDateString('en-GB')}</span></>}
           </span>
         </div>
       )}

@@ -70,6 +70,12 @@ export default function Onboarding() {
 
   const saveStore = async () => {
     if (!storeForm.name || !storeForm.location) { toast.error('Store name and location are required'); return false; }
+    const existingStores = await base44.entities.Store.filter({ organization_id: currentOrg.id });
+    const maxLocations = currentOrg?.max_locations || 1;
+    if (existingStores.length >= maxLocations) {
+      toast.error(`Your ${currentOrg?.plan_type || 'Starter'} plan allows ${maxLocations} store location${maxLocations !== 1 ? 's' : ''}. Please upgrade to add more.`);
+      return false;
+    }
     setSaving(true);
     try {
       await base44.entities.Store.create({
