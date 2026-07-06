@@ -1,16 +1,26 @@
 import { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 
 const STORAGE_KEY = 'acorcloud_current_org_id';
 const OrgContext = createContext(null);
 
 export const OrgProvider = ({ children }) => {
+  const { user } = useAuth();
+  const isSuperAdmin = !!user?.collaborator_role;
   const [organizations, setOrganizations] = useState([]);
   const [currentOrg, setCurrentOrg] = useState(null);
   const [loading, setLoading] = useState(true);
   const provisioningRef = useRef(false);
 
   const loadOrgs = useCallback(async () => {
+    // Super admins manage tenants from the SaaS Admin panel — don't auto-select a tenant org
+    if (isSuperAdmin) {
+      setOrganizations([]);
+      setCurrentOrg(null);
+      setLoading(false);
+      return;
+    }
     try {
       const orgs = await base44.entities.Organization.list('-created_date', 500);
 
@@ -48,7 +58,7 @@ export const OrgProvider = ({ children }) => {
     }
   }, []);
 
-  useEffect(() => { loadOrgs(); }, [loadOrgs]);
+  useEffect(() => { loadOrgs(); }, [loadOrgs, isSuperAdmin]);
 
   const switchOrg = useCallback((orgId) => {
     const org = organizations.find(o => o.id === orgId);

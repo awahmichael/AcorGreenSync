@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Leaf, TrendingDown, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight, BarChart2, Store, Rocket } from 'lucide-react';
+import { Leaf, TrendingDown, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownRight, BarChart2, Store, Rocket, Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -73,6 +73,23 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-6 h-6 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!organizationId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
+          <Building2 className="w-7 h-7 text-primary" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-foreground">Platform Administrator</h2>
+          <p className="text-sm text-muted-foreground mt-1">You don't have a tenant organization selected.</p>
+        </div>
+        <Link to="/saas-admin" className="bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+          Go to SaaS Admin Panel →
+        </Link>
       </div>
     );
   }
