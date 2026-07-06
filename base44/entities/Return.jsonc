@@ -2,6 +2,10 @@
   "name": "Return",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this return belongs to"
+    },
     "return_ref": {
       "type": "string",
       "description": "Unique return reference"
@@ -18,6 +22,9 @@
       "items": {
         "type": "object",
         "properties": {
+          "product_id": {
+            "type": "string"
+          },
           "product_name": {
             "type": "string"
           },

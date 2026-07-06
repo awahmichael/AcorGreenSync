@@ -2,6 +2,10 @@
   "name": "StockTransfer",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this transfer belongs to"
+    },
     "transfer_ref": {
       "type": "string",
       "description": "Unique transfer reference"

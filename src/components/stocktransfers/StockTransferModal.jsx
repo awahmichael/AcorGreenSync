@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 export default function StockTransferModal({ onClose, onSaved }) {
+  const { organizationId } = useOrganization();
   const [stores, setStores] = useState([]);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({ from_store_id: '', to_store_id: '', notes: '' });
@@ -16,8 +18,8 @@ export default function StockTransferModal({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    base44.entities.Store.filter({ is_active: true }).then(setStores).catch(() => {});
-    base44.entities.Product.filter({ is_active: true }).then(setProducts).catch(() => {});
+    base44.entities.Store.filter({ is_active: true, organization_id: organizationId }).then(setStores).catch(() => {});
+    base44.entities.Product.filter({ is_active: true, organization_id: organizationId, is_current_version: true }).then(setProducts).catch(() => {});
   }, []);
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
@@ -48,6 +50,7 @@ export default function StockTransferModal({ onClose, onSaved }) {
       const toStore = stores.find(s => s.id === form.to_store_id);
       await base44.entities.StockTransfer.create({
         transfer_ref: `ST-${Date.now()}`,
+        organization_id: organizationId,
         from_store_id: form.from_store_id,
         from_store_name: fromStore?.name || '',
         to_store_id: form.to_store_id,

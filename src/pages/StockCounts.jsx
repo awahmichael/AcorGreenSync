@@ -6,6 +6,7 @@ import { ClipboardCheck, Plus, Eye, Trash2 } from 'lucide-react';
 import StockCountModal from '@/components/stockcounts/StockCountModal';
 import StockCountDetail from '@/components/stockcounts/StockCountDetail';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const STATUS_COLORS = {
   draft: 'bg-gray-100 text-gray-700',
@@ -16,6 +17,7 @@ const STATUS_COLORS = {
 };
 
 export default function StockCounts() {
+  const { organizationId } = useOrganization();
   const [counts, setCounts] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +28,8 @@ export default function StockCounts() {
     setLoading(true);
     try {
       const [countData, storeData] = await Promise.all([
-        base44.entities.StockCount.list('-created_date', 200),
-        base44.entities.Store.list('-created_date', 200)
+        base44.entities.StockCount.filter({ organization_id: organizationId }, '-created_date', 200),
+        base44.entities.Store.filter({ organization_id: organizationId }, '-created_date', 200)
       ]);
       setCounts(countData || []);
       setStores(storeData || []);

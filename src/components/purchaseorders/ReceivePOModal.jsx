@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 export default function ReceivePOModal({ po, onClose, onReceived }) {
+  const { organizationId } = useOrganization();
   const [receivedQty, setReceivedQty] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -50,6 +52,7 @@ export default function ReceivePOModal({ po, onClose, onReceived }) {
             unit: 'unit',
             supplier_id: po.supplier_id,
             reference: po.po_ref,
+            organization_id: organizationId,
             movement_date: new Date().toISOString(),
           });
         })

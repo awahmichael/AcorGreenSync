@@ -2,6 +2,10 @@
   "name": "Shift",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this shift belongs to"
+    },
     "store_id": {
       "type": "string"
     },

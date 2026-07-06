@@ -44,8 +44,8 @@ export default function Dashboard() {
     Promise.all([
       base44.entities.Transaction.filter({ organization_id: organizationId }, '-transaction_date', 100),
       base44.entities.Product.filter({ organization_id: organizationId, is_current_version: true }),
-      base44.entities.CarbonTarget.filter({ is_active: true }),
-      base44.entities.Shift.list('-shift_start', 20),
+      base44.entities.CarbonTarget.filter({ is_active: true, organization_id: organizationId }),
+      base44.entities.Shift.filter({ organization_id: organizationId }, '-shift_start', 20),
       base44.entities.Store.filter({ is_active: true, organization_id: organizationId }),
     ]).then(([txns, prods, targets, shiftData, storeData]) => {
       setTransactions(txns);

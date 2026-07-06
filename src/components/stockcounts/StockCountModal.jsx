@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 export default function StockCountModal({ open, onClose, stores, onCreated }) {
+  const { organizationId } = useOrganization();
   const [countType, setCountType] = useState('global');
   const [storeId, setStoreId] = useState('');
   const [department, setDepartment] = useState('');
@@ -21,7 +23,7 @@ export default function StockCountModal({ open, onClose, stores, onCreated }) {
     (async () => {
       setLoading(true);
       try {
-        const data = await base44.entities.Product.list('-created_date', 5000);
+        const data = await base44.entities.Product.filter({ organization_id: organizationId, is_current_version: true }, '-created_date', 5000);
         setProducts(data || []);
         const cats = [...new Set((data || []).map(p => p.category).filter(Boolean))].sort();
         setCategories(cats);
@@ -57,6 +59,7 @@ export default function StockCountModal({ open, onClose, stores, onCreated }) {
       const ref = 'SC-' + Date.now().toString(36).toUpperCase();
       await base44.entities.StockCount.create({
         count_ref: ref,
+        organization_id: organizationId,
         store_id: storeId,
         store_name: store?.name || '',
         count_type: countType,

@@ -2,6 +2,10 @@
   "name": "StockMovement",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this movement belongs to"
+    },
     "product_id": {
       "type": "string"
     },

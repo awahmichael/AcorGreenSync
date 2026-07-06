@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const REASON_LABELS = {
   faulty: 'Faulty Product',
@@ -24,6 +25,7 @@ const METHOD_LABELS = {
 };
 
 export default function Returns() {
+  const { organizationId } = useOrganization();
   const [returns, setReturns] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [foundTxn, setFoundTxn] = useState(null);
@@ -35,8 +37,8 @@ export default function Returns() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    base44.entities.Return.list('-return_date', 100).then(setReturns).finally(() => setLoading(false));
-  }, []);
+    base44.entities.Return.filter({ organization_id: organizationId }, '-return_date', 100).then(setReturns).finally(() => setLoading(false));
+  }, [organizationId]);
 
   const searchTransaction = async () => {
     if (!searchQuery.trim()) return;
@@ -74,6 +76,7 @@ export default function Returns() {
         const qty = selectedItems[`qty_${i}`] || item.quantity;
         const ratio = qty / item.quantity;
         return {
+          product_id: item.product_id,
           product_name: item.product_name,
           quantity: qty,
           unit_price: item.unit_price,
@@ -93,6 +96,7 @@ export default function Returns() {
       const returnRef = `RET-${Date.now()}`;
       await base44.entities.Return.create({
         return_ref: returnRef,
+        organization_id: organizationId,
         original_transaction_ref: foundTxn.transaction_ref,
         original_transaction_id: foundTxn.id,
         return_items: items,
@@ -152,20 +156,23 @@ export default function Returns() {
 
       // --- Restock returned items + create stock movements ---
       await Promise.allSettled(items.map(async (item) => {
-        const products = await base44.entities.Product.filter({ name: item.product_name });
-        if (products[0]) {
-          const newQty = (products[0].stock_quantity || 0) + item.quantity;
-          await base44.entities.Product.update(products[0].id, { stock_quantity: newQty });
+        if (!item.product_id) return;
+        const product = await base44.entities.Product.get(item.product_id).catch(() => null);
+        if (product) {
+          const newQty = (product.stock_quantity || 0) + item.quantity;
+          await base44.entities.Product.update(product.id, { stock_quantity: newQty });
 
           // Create stock movement for restock
           await base44.entities.StockMovement.create({
-            product_id: products[0].id,
+            product_id: product.id,
             product_name: item.product_name,
+            store_name: foundTxn.store_name || '',
             movement_type: 'adjustment',
             quantity: item.quantity,
-            unit: products[0].unit || 'unit',
+            unit: product.unit || 'unit',
             reference: returnRef,
             notes: `Return restock — ${returnRef}`,
+            organization_id: organizationId,
             movement_date: new Date().toISOString(),
           }).catch(() => {});
         }
@@ -175,7 +182,7 @@ export default function Returns() {
       setFoundTxn(null);
       setSelectedItems({});
       setSearchQuery('');
-      setReturns(await base44.entities.Return.list('-return_date', 100));
+      setReturns(await base44.entities.Return.filter({ organization_id: organizationId }, '-return_date', 100));
     } catch (err) {
       toast.error(`Return failed: ${err.message}`);
     }

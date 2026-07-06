@@ -2,6 +2,10 @@
   "name": "CarbonTarget",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this target belongs to"
+    },
     "label": {
       "type": "string",
       "description": "e.g. 'FY2026 Company Target'"

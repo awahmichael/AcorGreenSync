@@ -2,6 +2,10 @@
   "name": "PurchaseOrder",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this PO belongs to"
+    },
     "po_ref": {
       "type": "string",
       "description": "Unique purchase order reference"

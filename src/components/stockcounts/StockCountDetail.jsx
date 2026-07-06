@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Save, CheckCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const VARIANCE_COLORS = {
   shrinkage: 'bg-red-100 text-red-700',
@@ -17,6 +18,7 @@ const VARIANCE_COLORS = {
 };
 
 export default function StockCountDetail({ count, onClose, onUpdated }) {
+  const { organizationId } = useOrganization();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
@@ -78,6 +80,19 @@ export default function StockCountDetail({ count, onClose, onUpdated }) {
         if (item.counted_quantity != null && item.variance !== 0) {
           await base44.entities.Product.update(item.product_id, {
             stock_quantity: item.counted_quantity
+          });
+          await base44.entities.StockMovement.create({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            store_id: count.store_id,
+            store_name: count.store_name,
+            movement_type: 'adjustment',
+            quantity: Math.abs(item.variance),
+            unit: 'unit',
+            reference: count.count_ref,
+            notes: `Stock count variance — ${item.variance_reason || 'unexplained'} (${item.variance > 0 ? 'surplus' : 'shortage'})`,
+            organization_id: organizationId,
+            movement_date: new Date().toISOString(),
           });
         }
       }

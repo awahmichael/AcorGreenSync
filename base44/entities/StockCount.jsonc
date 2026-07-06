@@ -2,6 +2,10 @@
   "name": "StockCount",
   "type": "object",
   "properties": {
+    "organization_id": {
+      "type": "string",
+      "description": "Multi-tenant scoping: Organization this count belongs to"
+    },
     "count_ref": {
       "type": "string",
       "description": "Unique stock count reference"

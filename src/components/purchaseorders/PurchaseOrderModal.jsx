@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Trash2, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 export default function PurchaseOrderModal({ onClose, onSaved }) {
+  const { organizationId } = useOrganization();
   const [suppliers, setSuppliers] = useState([]);
   const [stores, setStores] = useState([]);
   const [products, setProducts] = useState([]);
@@ -20,9 +22,9 @@ export default function PurchaseOrderModal({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    base44.entities.Supplier.filter({ is_active: true }).then(setSuppliers).catch(() => {});
-    base44.entities.Store.filter({ is_active: true }).then(setStores).catch(() => {});
-    base44.entities.Product.filter({ is_active: true }).then(setProducts).catch(() => {});
+    base44.entities.Supplier.filter({ is_active: true, organization_id: organizationId }).then(setSuppliers).catch(() => {});
+    base44.entities.Store.filter({ is_active: true, organization_id: organizationId }).then(setStores).catch(() => {});
+    base44.entities.Product.filter({ is_active: true, organization_id: organizationId, is_current_version: true }).then(setProducts).catch(() => {});
   }, []);
 
   const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
@@ -96,6 +98,7 @@ export default function PurchaseOrderModal({ onClose, onSaved }) {
       const store = stores.find(s => s.id === form.store_id);
       await base44.entities.PurchaseOrder.create({
         po_ref: `PO-${Date.now()}`,
+        organization_id: organizationId,
         supplier_id: form.supplier_id,
         supplier_name: supplier?.name || '',
         store_id: form.store_id,

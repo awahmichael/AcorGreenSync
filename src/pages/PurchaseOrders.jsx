@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import PurchaseOrderModal from '@/components/purchaseorders/PurchaseOrderModal';
 import ReceivePOModal from '@/components/purchaseorders/ReceivePOModal';
 import PODetailModal from '@/components/purchaseorders/PODetailModal';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-700',
@@ -16,6 +17,7 @@ const statusColors = {
 };
 
 export default function PurchaseOrders() {
+  const { organizationId } = useOrganization();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -26,7 +28,7 @@ export default function PurchaseOrders() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.PurchaseOrder.list('-order_date', 100);
+      const data = await base44.entities.PurchaseOrder.filter({ organization_id: organizationId }, '-order_date', 100);
       setOrders(data);
     } catch (err) { toast.error('Failed to load purchase orders'); }
     finally { setLoading(false); }

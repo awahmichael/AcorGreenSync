@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Truck, PackageCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import StockTransferModal from '@/components/stocktransfers/StockTransferModal';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-700',
@@ -13,6 +14,7 @@ const statusColors = {
 };
 
 export default function StockTransfers() {
+  const { organizationId } = useOrganization();
   const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -21,7 +23,7 @@ export default function StockTransfers() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.StockTransfer.list('-created_date', 100);
+      const data = await base44.entities.StockTransfer.filter({ organization_id: organizationId }, '-created_date', 100);
       setTransfers(data);
     } catch (err) { toast.error('Failed to load transfers'); }
     finally { setLoading(false); }
@@ -51,6 +53,7 @@ export default function StockTransfers() {
             quantity: item.quantity,
             unit: item.unit || 'unit',
             reference: transfer.transfer_ref,
+            organization_id: organizationId,
             movement_date: new Date().toISOString(),
           });
         })
@@ -81,6 +84,7 @@ export default function StockTransfers() {
             quantity: item.quantity,
             unit: item.unit || 'unit',
             reference: transfer.transfer_ref,
+            organization_id: organizationId,
             movement_date: new Date().toISOString(),
           });
         })

@@ -36,7 +36,7 @@ export default function Inventory() {
     if (!organizationId) { setLoading(false); return; }
     Promise.all([
       base44.entities.Product.filter({ is_current_version: true, organization_id: organizationId }),
-      base44.entities.StockMovement.list('-movement_date', 100),
+      base44.entities.StockMovement.filter({ organization_id: organizationId }, '-movement_date', 100),
       base44.entities.Store.filter({ organization_id: organizationId }),
     ]).then(([p, m, s]) => { setProducts(p); setMovements(m); setStores(s); }).finally(() => setLoading(false));
   }, [organizationId]);

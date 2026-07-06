@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 
 const DISCLOSURE_CONFIG = {
   Disclosed: { icon: CheckCircle2, color: 'text-green-600 bg-green-50', label: 'Disclosed' },
@@ -26,6 +27,7 @@ const TRANSPORT_MODES = [
 const BLANK = { name: '', contact_name: '', email: '', phone: '', address: '', postcode: '', country: 'United Kingdom', category: '', distance_km: '', transport_mode: 'road_hgv', declared_scope3_kg_co2e: '', carbon_disclosure_status: 'Not Disclosed', notes: '' };
 
 export default function Suppliers() {
+  const { organizationId } = useOrganization();
   const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -34,8 +36,8 @@ export default function Suppliers() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    base44.entities.Supplier.list().then(setSuppliers).finally(() => setLoading(false));
-  }, []);
+    base44.entities.Supplier.filter({ organization_id: organizationId }).then(setSuppliers).finally(() => setLoading(false));
+  }, [organizationId]);
 
   const openAdd = () => { setEditing(null); setForm(BLANK); setShowModal(true); };
   const openEdit = (s) => { setEditing(s); setForm({ ...s, declared_scope3_kg_co2e: s.declared_scope3_kg_co2e || '', distance_km: s.distance_km || '', transport_mode: s.transport_mode || 'road_hgv' }); setShowModal(true); };
@@ -47,11 +49,11 @@ export default function Suppliers() {
       await base44.entities.Supplier.update(editing.id, data);
       toast.success('Supplier updated');
     } else {
-      await base44.entities.Supplier.create(data);
+      await base44.entities.Supplier.create({ ...data, organization_id: organizationId });
       toast.success('Supplier added');
     }
     setShowModal(false);
-    base44.entities.Supplier.list().then(setSuppliers);
+    base44.entities.Supplier.filter({ organization_id: organizationId }).then(setSuppliers);
   };
 
   const remove = async (id) => {
