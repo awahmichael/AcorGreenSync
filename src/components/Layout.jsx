@@ -272,7 +272,18 @@ function LayoutInner() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
-          {currentOrg && !user?.collaborator_role && <OrgSwitcher />}
+          {currentOrg && !user?.collaborator_role && (
+            <>
+              <OrgSwitcher />
+              <Link
+                to="/pos"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span className="hidden sm:inline">POS</span>
+              </Link>
+            </>
+          )}
           {user && <UserMenu />}
           <div className={cn(
             "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full",
