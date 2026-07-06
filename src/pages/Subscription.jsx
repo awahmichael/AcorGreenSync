@@ -182,7 +182,7 @@ export default function Subscription() {
                     </li>
                   ))}
                 </ul>
-                {isCurrent ? (
+                {isCurrent && isActive ? (
                   <button disabled className="w-full py-2.5 rounded-lg text-sm font-semibold bg-muted text-muted-foreground cursor-default">
                     Current Plan
                   </button>
@@ -190,11 +190,11 @@ export default function Subscription() {
                   <button
                     onClick={() => startCheckout(plan.name)}
                     disabled={checkoutPlan === plan.name}
-                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${plan.is_popular ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-border text-foreground hover:bg-accent'}`}
+                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${isCurrent ? 'bg-primary text-primary-foreground hover:bg-primary/90' : plan.is_popular ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-border text-foreground hover:bg-accent'}`}
                   >
                     {checkoutPlan === plan.name
                       ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting...</>
-                      : <><CreditCard className="w-4 h-4" /> Choose {plan.name}</>}
+                      : <><CreditCard className="w-4 h-4" /> {isCurrent ? 'Subscribe Now' : `Choose ${plan.name}`}</>}
                   </button>
                 )}
               </div>
