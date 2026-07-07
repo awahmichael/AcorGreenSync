@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useDebounce } from '@/hooks/useDebounce';
 import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X, User, Tag, PoundSterling, Clock, Pause, Star, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,43 +47,37 @@ export default function POS() {
   const cashierName = user?.full_name || user?.email || 'Cashier';
   const cashierId = user?.id || '';
 
+  const debouncedSearch = useDebounce(search, 300);
+  const [searchResults, setSearchResults] = useState([]);
+
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
-    (async () => {
-      try {
-        const query = { is_active: true, is_current_version: true, organization_id: organizationId };
-        const batchSize = 500;
-        const all = [];
-        let skip = 0;
-        let hasMore = true;
-        while (hasMore) {
-          const batch = await base44.entities.Product.filter(query, '-name', batchSize, skip);
-          all.push(...batch);
-          skip += batchSize;
-          if (batch.length < batchSize) hasMore = false;
-        }
-        setProducts(all);
-        await refreshCache();
-      } catch {
-        // ignore — products will be empty
-      } finally {
-        setLoading(false);
-      }
-    })();
+    base44.entities.Product.filter({ is_active: true, is_current_version: true, organization_id: organizationId }, '-name', 200).then(async (prods) => {
+      setProducts(prods);
+      await refreshCache();
+    }).finally(() => setLoading(false));
     base44.entities.Customer.list().then(setCustomers).catch(() => {});
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, [organizationId]);
 
+  // Server-side search via backend function — handles 20k+ catalogs
+  useEffect(() => {
+    const q = debouncedSearch.trim();
+    if (!q || !organizationId) { setSearchResults([]); return; }
+    base44.functions.invoke('searchProducts', {
+      organization_id: organizationId,
+      search: q,
+      page: 1,
+      page_size: 200,
+      is_active_only: true,
+    }).then(res => setSearchResults(res.data.items))
+      .catch(() => setSearchResults([]));
+  }, [debouncedSearch, organizationId]);
+
   const filteredProducts = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return products.slice(0, 200);
-    return products.filter(p =>
-      (p.name || '').toLowerCase().includes(q) ||
-      (p.category || '').toLowerCase().includes(q) ||
-      (p.upc || '').toLowerCase().includes(q) ||
-      (p.sku || '').toLowerCase().includes(q)
-    );
-  }, [products, search]);
+    if (!search.trim()) return products.slice(0, 200);
+    return searchResults;
+  }, [products, search, searchResults]);
 
   const addToCart = (product) => {
     setCart(prev => {

@@ -1,18 +1,18 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft } from 'lucide-react';
 
-export default function Pagination({ currentPage, totalPages, totalItems, pageSize, onPageChange, onPageSizeChange, pageSizeOptions = [100, 200, 300] }) {
-  if (totalItems === 0) return null;
+export default function Pagination({ currentPage, hasMore, totalItems, pageSize, loading, onPageChange, onPageSizeChange, pageSizeOptions = [100, 200, 300] }) {
+  if (totalItems === 0 && !loading) return null;
 
-  const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = (currentPage - 1) * pageSize + totalItems;
   const canPrev = currentPage > 1;
-  const canNext = currentPage < totalPages;
+  const canNext = hasMore;
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <span>
-          Showing <strong className="text-foreground">{startItem}</strong>–<strong className="text-foreground">{endItem}</strong> of <strong className="text-foreground">{totalItems.toLocaleString()}</strong> items
+          {loading ? 'Loading...' : <>Showing <strong className="text-foreground">{startItem}</strong>–<strong className="text-foreground">{endItem}</strong> items</>}
         </span>
         <div className="flex items-center gap-1.5">
           <label className="text-xs text-muted-foreground">Rows:</label>
@@ -46,7 +46,7 @@ export default function Pagination({ currentPage, totalPages, totalItems, pageSi
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
         <span className="text-xs text-muted-foreground px-2">
-          Page <strong className="text-foreground">{currentPage}</strong> of {totalPages}
+          Page <strong className="text-foreground">{currentPage}</strong>
         </span>
         <button
           disabled={!canNext}
@@ -55,14 +55,6 @@ export default function Pagination({ currentPage, totalPages, totalItems, pageSi
           title="Next page"
         >
           <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-        <button
-          disabled={!canNext}
-          onClick={() => onPageChange(totalPages)}
-          className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors"
-          title="Last page"
-        >
-          <ChevronsRight className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

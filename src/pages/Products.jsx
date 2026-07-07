@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Download, Package, Star, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,8 @@ const STATUS_STYLE = {
 };
 
 export default function Products() {
-  const [allProducts, setAllProducts] = useState([]);
+  const [items, setItems] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -33,51 +35,32 @@ export default function Products() {
   const [pageSize, setPageSize] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
   const { organizationId } = useOrganization();
+  const debouncedSearch = useDebounce(search, 300);
 
   const loadAll = useCallback(async () => {
     if (!organizationId) return;
     setLoading(true);
     try {
-      const query = { is_current_version: true, organization_id: organizationId };
-      const batchSize = 500;
-      const all = [];
-      let skip = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const batch = await base44.entities.Product.filter(query, '-created_date', batchSize, skip);
-        all.push(...batch);
-        skip += batchSize;
-        if (batch.length < batchSize) hasMore = false;
-      }
-      setAllProducts(all);
+      const res = await base44.functions.invoke('searchProducts', {
+        organization_id: organizationId,
+        search: debouncedSearch,
+        filter_status: filter,
+        page: currentPage,
+        page_size: pageSize,
+      });
+      setItems(res.data.items);
+      setHasMore(res.data.has_more);
     } catch (err) {
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, debouncedSearch, filter, currentPage, pageSize]);
 
-  useEffect(() => { loadAll(); }, [organizationId]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Client-side filtering — instant and case-insensitive
-  const filteredProducts = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return allProducts.filter(p => {
-      if (filter !== 'all' && p.emission_mapping_status !== filter) return false;
-      if (!q) return true;
-      return (
-        (p.name || '').toLowerCase().includes(q) ||
-        (p.sku || '').toLowerCase().includes(q) ||
-        (p.upc || '').toLowerCase().includes(q) ||
-        (p.category || '').toLowerCase().includes(q)
-      );
-    });
-  }, [allProducts, search, filter]);
-
-  const totalItems = filteredProducts.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const safePage = Math.min(currentPage, totalPages);
-  const products = filteredProducts.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const products = items;
+  const totalItems = items.length;
 
   const handleSearch = (val) => {
     setSearch(val);
@@ -324,10 +307,11 @@ export default function Products() {
           )}
           </div>
           <Pagination
-          currentPage={safePage}
-          totalPages={totalPages}
+          currentPage={currentPage}
+          hasMore={hasMore}
           totalItems={totalItems}
           pageSize={pageSize}
+          loading={loading}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
           />
