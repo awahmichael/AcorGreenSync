@@ -25,6 +25,7 @@ const CATALOG_SCHEMA = {
     upc: { type: 'string' },
     name: { type: 'string' },
     price: { type: 'number' },
+    cost_price: { type: 'number' },
     category: { type: 'string' },
     sku: { type: 'string' },
     unit: { type: 'string' },
@@ -224,7 +225,7 @@ export function useCatalogIngestion() {
    * Syncs processed SKUs to the Base44 cloud Product entity in bulk batches.
    * Also caches to local IndexedDB for offline POS access.
    */
-  const syncToCloud = useCallback(async (skus) => {
+  const syncToCloud = useCallback(async (skus, organizationId) => {
     setSyncing(true);
     setError(null);
     let synced = 0;
@@ -237,6 +238,7 @@ export function useCatalogIngestion() {
           sku: sku.sku,
           category: sku.category,
           price: sku.price,
+          cost_price: sku.cost_price || 0,
           unit: sku.unit,
           stock_quantity: sku.stock_level,
           emission_factor_defra: sku.carbon_coefficient,
@@ -248,6 +250,7 @@ export function useCatalogIngestion() {
           is_current_version: true,
           valid_from: sku.valid_from || new Date().toISOString(),
           base_product_id: sku.base_product_id,
+          organization_id: organizationId,
         }));
 
         await base44.entities.Product.bulkCreate(batch);

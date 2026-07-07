@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCatalogIngestion } from '@/hooks/useCatalogIngestion';
+import { useOrganization } from '@/hooks/useOrganization.jsx';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import {
@@ -36,6 +37,7 @@ export default function BulkUploadModal({ onClose, onSynced }) {
   const [file, setFile] = useState(null);
   const [storePrefix, setStorePrefix] = useState('store01');
   const [extractMsg, setExtractMsg] = useState('');
+  const { organizationId } = useOrganization();
   const { processing, syncing, progress, results, error, processCatalog, syncToCloud, reset } = useCatalogIngestion();
   const fileInputRef = useRef(null);
 
@@ -78,6 +80,7 @@ export default function BulkUploadModal({ onClose, onSynced }) {
             upc: { type: 'string' },
             name: { type: 'string' },
             price: { type: 'number' },
+            cost_price: { type: 'number' },
             category: { type: 'string' },
             sku: { type: 'string' },
             unit: { type: 'string' },
@@ -111,7 +114,7 @@ export default function BulkUploadModal({ onClose, onSynced }) {
     if (!results?.skus) return;
     setStep(STEPS.SYNCING);
     try {
-      const synced = await syncToCloud(results.skus);
+      const synced = await syncToCloud(results.skus, organizationId);
       setStep(STEPS.COMPLETE);
       toast.success(`${synced} products synced to cloud`);
     } catch (err) {
