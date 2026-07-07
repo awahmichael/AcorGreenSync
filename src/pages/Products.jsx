@@ -9,6 +9,7 @@ import { useOrganization } from '@/hooks/useOrganization.jsx';
 import ProductModal from '@/components/products/ProductModal';
 import VersionHistoryModal from '@/components/products/VersionHistoryModal';
 import BulkUploadModal from '@/components/products/BulkUploadModal';
+import Pagination from '@/components/products/Pagination';
 
 const STATUS_STYLE = {
   Mapped: 'bg-green-50 text-green-700 border-green-200',
@@ -26,22 +27,63 @@ export default function Products() {
   const [historyProduct, setHistoryProduct] = useState(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [pageSize, setPageSize] = useState(100);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const { organizationId } = useOrganization();
 
-  const load = () => {
-    if (!organizationId) return;
-    setLoading(true);
-    base44.entities.Product.filter({ is_current_version: true, organization_id: organizationId }).then(setProducts).finally(() => setLoading(false));
+  const buildQuery = (searchVal, filterVal) => {
+    const query = { is_current_version: true, organization_id: organizationId };
+    if (filterVal !== 'all') query.emission_mapping_status = filterVal;
+    if (searchVal.trim()) {
+      const regex = { $regex: searchVal.trim(), $options: 'i' };
+      return { ...query, $or: [{ name: regex }, { category: regex }, { sku: regex }] };
+    }
+    return query;
   };
 
-  useEffect(() => { if (organizationId) load(); }, [organizationId]);
+  const load = async (page, size, searchVal, filterVal) => {
+    if (!organizationId) return;
+    setLoading(true);
+    try {
+      const query = buildQuery(searchVal ?? search, filterVal ?? filter);
+      const useSize = size ?? pageSize;
+      const usePage = page ?? currentPage;
+      const skip = (usePage - 1) * useSize;
+      const [pageData, countData] = await Promise.all([
+        base44.entities.Product.filter(query, '-created_date', useSize, skip),
+        base44.entities.Product.filter(query, '-created_date', 5000, 0),
+      ]);
+      setProducts(pageData);
+      setTotalItems(countData.length);
+      setCurrentPage(usePage);
+    } catch (err) {
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.category || '').toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'all' || p.emission_mapping_status === filter;
-    return matchSearch && matchFilter;
-  });
+  useEffect(() => { if (organizationId) load(1, pageSize, '', 'all'); }, [organizationId]);
+
+  const handleSearch = (val) => {
+    setSearch(val);
+    load(1, pageSize, val, filter);
+  };
+
+  const handleFilterChange = (val) => {
+    setFilter(val);
+    load(1, pageSize, search, val);
+  };
+
+  const handlePageSizeChange = (size) => {
+    setPageSize(size);
+    load(1, size);
+  };
+
+  const handlePageChange = (page) => {
+    load(page);
+  };
 
   const handleDelete = async (id) => {
     await base44.entities.Product.delete(id);
@@ -58,8 +100,6 @@ export default function Products() {
     setEditProduct(null);
     setShowModal(true);
   };
-
-  const pendingCount = products.filter(p => p.emission_mapping_status !== 'Mapped').length;
 
   return (
     <div className="p-6 space-y-5">
@@ -80,25 +120,16 @@ export default function Products() {
         </div>
       </div>
 
-      {pendingCount > 0 && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-          <span className="text-sm text-amber-800">
-            <strong>{pendingCount} product{pendingCount !== 1 ? 's' : ''}</strong> need emission factor mapping for accurate Scope 3 reporting.
-          </span>
-        </div>
-      )}
-
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search products..." value={search} onChange={e => handleSearch(e.target.value)} className="pl-9" />
         </div>
         <div className="flex gap-2">
           {['all', 'Mapped', 'Pending', 'Flagged'].map(f => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => handleFilterChange(f)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 filter === f ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:border-primary'
               }`}
@@ -136,7 +167,7 @@ export default function Products() {
                     </td>
                   </tr>
                 ))
-              ) : filtered.map(p => (
+              ) : products.map(p => (
                 <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 text-center">
                     {p.image_url ? (
@@ -207,11 +238,19 @@ export default function Products() {
               ))}
             </tbody>
           </table>
-          {!loading && filtered.length === 0 && (
+          {!loading && products.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-sm">No products found.</div>
           )}
-        </div>
-      </div>
+          </div>
+          <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(1, Math.ceil(totalItems / pageSize))}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          />
+          </div>
 
       {showModal && (
         <ProductModal
@@ -231,7 +270,7 @@ export default function Products() {
       {showBulkUpload && (
         <BulkUploadModal
           onClose={() => setShowBulkUpload(false)}
-          onSynced={load}
+          onSynced={() => load(1)}
         />
       )}
     </div>
