@@ -38,11 +38,17 @@ export default function Products() {
     if (!organizationId) return;
     setLoading(true);
     try {
-      const all = await base44.entities.Product.filter(
-        { is_current_version: true, organization_id: organizationId },
-        '-created_date',
-        5000
-      );
+      const query = { is_current_version: true, organization_id: organizationId };
+      const batchSize = 500;
+      const all = [];
+      let skip = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const batch = await base44.entities.Product.filter(query, '-created_date', batchSize, skip);
+        all.push(...batch);
+        skip += batchSize;
+        if (batch.length < batchSize) hasMore = false;
+      }
       setAllProducts(all);
     } catch (err) {
       toast.error('Failed to load products');

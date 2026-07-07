@@ -48,10 +48,27 @@ export default function POS() {
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
-    base44.entities.Product.filter({ is_active: true, is_current_version: true, organization_id: organizationId }, '-name', 5000).then(async (prods) => {
-      setProducts(prods);
-      await refreshCache();
-    }).finally(() => setLoading(false));
+    (async () => {
+      try {
+        const query = { is_active: true, is_current_version: true, organization_id: organizationId };
+        const batchSize = 500;
+        const all = [];
+        let skip = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const batch = await base44.entities.Product.filter(query, '-name', batchSize, skip);
+          all.push(...batch);
+          skip += batchSize;
+          if (batch.length < batchSize) hasMore = false;
+        }
+        setProducts(all);
+        await refreshCache();
+      } catch {
+        // ignore — products will be empty
+      } finally {
+        setLoading(false);
+      }
+    })();
     base44.entities.Customer.list().then(setCustomers).catch(() => {});
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, [organizationId]);
