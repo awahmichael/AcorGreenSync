@@ -31,17 +31,24 @@ Deno.serve(async (req) => {
           orgs = await base44.asServiceRole.entities.Organization.filter({ billing_email: customerEmail });
         }
 
+        // Derive billing period end from billing cycle as a fallback
+        // (customer.subscription.updated will overwrite with Stripe's exact date when it fires)
+        const periodEndFallback = billingCycle === 'annual'
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
         if (orgs.length > 0) {
-          // Link existing org to Stripe customer and activate
+          // Existing org choosing a plan — activate immediately with a real billing period
           await base44.asServiceRole.entities.Organization.update(orgs[0].id, {
             stripe_customer_id: session.customer,
-            subscription_status: 'trial',
+            subscription_status: 'active',
             plan_type: planName,
             billing_cycle: billingCycle,
             subscription_started_at: new Date().toISOString(),
-            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            current_period_start: new Date().toISOString(),
+            current_period_end: periodEndFallback,
             is_active: true,
-            onboarding_completed: false,
+            onboarding_completed: orgs[0].onboarding_completed ?? false,
           });
           console.log(`Activated existing org ${orgs[0].id} for customer ${session.customer}`);
         } else {
@@ -52,12 +59,13 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Organization.create({
             name: session.metadata?.company_name || customerEmail.split('@')[0],
             plan_type: planName,
-            subscription_status: 'trial',
+            subscription_status: 'active',
             billing_cycle: billingCycle,
             stripe_customer_id: session.customer,
             billing_email: customerEmail,
-            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
             subscription_started_at: new Date().toISOString(),
+            current_period_start: new Date().toISOString(),
+            current_period_end: periodEndFallback,
             max_locations: maxLoc,
             max_skus: maxSkus,
             onboarding_completed: false,
@@ -82,10 +90,25 @@ Deno.serve(async (req) => {
         const sub = event.data.object;
         const orgs = await base44.asServiceRole.entities.Organization.filter({ stripe_customer_id: sub.customer });
         if (orgs.length > 0) {
-          await base44.asServiceRole.entities.Organization.update(orgs[0].id, {
+          const org = orgs[0];
+
+          // Determine billing period end — use Stripe's value if available,
+          // otherwise derive from billing cycle as a fallback
+          let periodEnd = sub.current_period_end
+            ? new Date(sub.current_period_end * 1000).toISOString()
+            : null;
+
+          if (!periodEnd && sub.status === 'active') {
+            const cycle = org.billing_cycle || 'monthly';
+            periodEnd = cycle === 'annual'
+              ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          }
+
+          await base44.asServiceRole.entities.Organization.update(org.id, {
             subscription_status: sub.status === 'active' ? 'active' : sub.status === 'trialing' ? 'trial' : sub.status,
-            current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
-            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+            current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : (org.current_period_start || new Date().toISOString()),
+            current_period_end: periodEnd,
             dunning_status: 'none',
             dunning_retry_count: 0,
             is_active: sub.status !== 'canceled',
