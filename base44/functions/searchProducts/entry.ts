@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Simple in-memory cache — survives across warm invocations
+// Key: org_id, Value: { products: [], fetched_at: number }
+const cache = new Map();
+const CACHE_TTL_MS = 60_000; // 1 minute
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -20,56 +25,60 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'organization_id is required' }, { status: 400 });
     }
 
-    // Build MongoDB query — service-role SDK supports $or + $regex
-    const query = {
-      is_current_version: true,
-      organization_id,
-      ...(is_active_only ? { is_active: true } : {}),
-      ...(filter_status !== 'all' ? { emission_mapping_status: filter_status } : {}),
-    };
-
-    // Smart search strategy: short/numeric queries (barcodes, SKU prefixes) are
-    // extremely expensive as unanchored regexes — they match nearly every record.
-    // For short queries, anchor to ^ and only search identifier fields (sku, upc)
-    // which is the realistic use case (barcode scan / SKU lookup). For longer
-    // queries, search all text fields with a contains-match.
-    const q = String(search).trim();
-    if (q) {
-      if (q.length <= 3) {
-        // Short query — anchored prefix match on identifier fields only
-        const anchored = { $regex: `^${q}`, $options: 'i' };
-        query.$or = [
-          { sku: anchored },
-          { upc: anchored },
-          { name: anchored },
-        ];
-      } else {
-        // Longer query — contains match across all text fields
-        const regex = { $regex: q, $options: 'i' };
-        query.$or = [
-          { name: regex },
-          { sku: regex },
-          { upc: regex },
-          { category: regex },
-        ];
+    // --- Fetch all current-version products for this org (equality filters only = index-backed) ---
+    let orgProducts = null;
+    const cached = cache.get(organization_id);
+    if (cached && (Date.now() - cached.fetched_at) < CACHE_TTL_MS) {
+      orgProducts = cached.products;
+    } else {
+      orgProducts = [];
+      const batchSize = 500;
+      let skip = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const batch = await base44.asServiceRole.entities.Product.filter(
+          { is_current_version: true, organization_id },
+          '-created_date',
+          batchSize,
+          skip
+        );
+        orgProducts.push(...batch);
+        skip += batchSize;
+        if (batch.length < batchSize) hasMore = false;
+        // Safety cap to prevent runaway queries
+        if (orgProducts.length > 50000) break;
       }
+      cache.set(organization_id, { products: orgProducts, fetched_at: Date.now() });
     }
 
+    // --- Filter in JavaScript (instant, no DB regex) ---
+    const q = String(search).toLowerCase().trim();
+    let results = orgProducts;
+
+    if (is_active_only) {
+      results = results.filter(p => p.is_active !== false);
+    }
+
+    if (filter_status !== 'all') {
+      results = results.filter(p => p.emission_mapping_status === filter_status);
+    }
+
+    if (q) {
+      results = results.filter(p =>
+        String(p.name || '').toLowerCase().includes(q) ||
+        String(p.sku || '').toLowerCase().includes(q) ||
+        String(p.upc || '').toLowerCase().includes(q) ||
+        String(p.category || '').toLowerCase().includes(q)
+      );
+    }
+
+    // --- Paginate ---
+    const totalItems = results.length;
     const skip = (page - 1) * page_size;
-    // Fetch one extra to determine has_more
-    const items = await base44.asServiceRole.entities.Product.filter(
-      query,
-      '-created_date',
-      page_size + 1,
-      skip
-    );
+    const items = results.slice(skip, skip + page_size);
+    const has_more = skip + page_size < totalItems;
 
-    const has_more = items.length > page_size;
-
-    return Response.json({
-      items: items.slice(0, page_size),
-      has_more,
-    });
+    return Response.json({ items, has_more, total: totalItems });
   } catch (error) {
     console.error('searchProducts error:', error);
     return Response.json({ error: error.message }, { status: 500 });
