@@ -164,6 +164,7 @@ export class CatalogIngestionPipeline {
       const standardizedProduct = createInventorySku({
         name: rawItem.name || 'Unnamed Product',
         price: Number(rawItem.price) || 0,
+        cost_price: Number(rawItem.cost_price ?? rawItem.Cost_price ?? rawItem.Cost ?? rawItem.cost) || 0,
         stock_quantity: Number(rawItem.stock || rawItem.stock_quantity) || 0,
         upc: finalLookupCode,
         sku: rawItem.sku || (isPseudo ? finalLookupCode : ''),

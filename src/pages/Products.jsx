@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Package, Star } from 'lucide-react';
+import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Download, Package, Star, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { useOrganization } from '@/hooks/useOrganization.jsx';
 import ProductModal from '@/components/products/ProductModal';
 import VersionHistoryModal from '@/components/products/VersionHistoryModal';
 import BulkUploadModal from '@/components/products/BulkUploadModal';
+import ClearCatalogModal from '@/components/products/ClearCatalogModal';
 import Pagination from '@/components/products/Pagination';
 
 const STATUS_STYLE = {
@@ -26,6 +27,8 @@ export default function Products() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [historyProduct, setHistoryProduct] = useState(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showClearCatalog, setShowClearCatalog] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [filter, setFilter] = useState('all');
   const [pageSize, setPageSize] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,6 +104,66 @@ export default function Products() {
     setShowModal(true);
   };
 
+  const handleExport = async () => {
+    if (!organizationId) return;
+    setExporting(true);
+    try {
+      const query = { is_current_version: true, organization_id: organizationId };
+      const allProducts = [];
+      let skip = 0;
+      const batchSize = 500;
+      let hasMore = true;
+      while (hasMore) {
+        const batch = await base44.entities.Product.filter(query, '-created_date', batchSize, skip);
+        allProducts.push(...batch);
+        if (batch.length < batchSize) hasMore = false;
+        else skip += batchSize;
+      }
+
+      const headers = ['Name', 'SKU', 'UPC', 'Category', 'Price', 'Cost Price', 'Stock', 'Unit', 'Emission Factor', 'Emission Source', 'Mapping Status', 'Age Restricted', 'Allergens', 'Is Active'];
+      const rows = allProducts.map(p => [
+        p.name || '',
+        p.sku || '',
+        p.upc || '',
+        p.category || '',
+        p.price || 0,
+        p.cost_price || 0,
+        p.stock_quantity || 0,
+        p.unit || '',
+        p.emission_factor_defra || '',
+        p.emission_factor_source || '',
+        p.emission_mapping_status || '',
+        p.age_restricted ? 'Yes' : 'No',
+        (p.allergens || []).join('; '),
+        p.is_active ? 'Yes' : 'No',
+      ]);
+
+      const escapeCell = (val) => {
+        const str = String(val ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const csv = [headers, ...rows].map(r => r.map(escapeCell).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `product_catalog_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${allProducts.length} products to CSV`);
+    } catch (err) {
+      toast.error(`Export failed: ${err.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
@@ -109,6 +172,14 @@ export default function Products() {
           <p className="text-muted-foreground text-sm mt-0.5">Manage products and emission factor mappings</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowClearCatalog(true)}>
+            <Eraser className="w-4 h-4 mr-2" />
+            Clear Catalog
+          </Button>
+          <Button variant="outline" onClick={handleExport} disabled={exporting || totalItems === 0}>
+            {exporting ? <span className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            Export CSV
+          </Button>
           <Button variant="outline" onClick={() => setShowBulkUpload(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Bulk Upload
@@ -271,6 +342,14 @@ export default function Products() {
         <BulkUploadModal
           onClose={() => setShowBulkUpload(false)}
           onSynced={() => load(1)}
+        />
+      )}
+
+      {showClearCatalog && (
+        <ClearCatalogModal
+          organizationId={organizationId}
+          onClose={() => setShowClearCatalog(false)}
+          onCleared={() => load(1)}
         />
       )}
     </div>
