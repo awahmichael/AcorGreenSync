@@ -236,7 +236,7 @@ export function useCatalogIngestion() {
           name: sku.name,
           upc: sku.upc,
           sku: sku.sku,
-          category: sku.category,
+          category: sku.category || sku.category_id || 'Other',
           price: sku.price,
           cost_price: sku.cost_price || 0,
           unit: sku.unit,
