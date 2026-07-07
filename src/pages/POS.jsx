@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X, User, Tag, PoundSterling, Clock, Pause, Star, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,15 +56,16 @@ export default function POS() {
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, [organizationId]);
 
-  const filteredProducts = search.trim()
-    ? products.filter(p => {
-        const q = search.toLowerCase().trim();
-        return p.name.toLowerCase().includes(q) ||
-          (p.category || '').toLowerCase().includes(q) ||
-          (p.upc || '').toLowerCase().includes(q) ||
-          (p.sku || '').toLowerCase().includes(q);
-      })
-    : products.slice(0, 200);
+  const filteredProducts = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return products.slice(0, 200);
+    return products.filter(p =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q) ||
+      (p.upc || '').toLowerCase().includes(q) ||
+      (p.sku || '').toLowerCase().includes(q)
+    );
+  }, [products, search]);
 
   const addToCart = (product) => {
     setCart(prev => {

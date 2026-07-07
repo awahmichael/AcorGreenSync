@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Download, Package, Star, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ const STATUS_STYLE = {
 };
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -32,70 +32,70 @@ export default function Products() {
   const [filter, setFilter] = useState('all');
   const [pageSize, setPageSize] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const debounceRef = useRef(null);
   const { organizationId } = useOrganization();
 
-  const buildQuery = (searchVal, filterVal) => {
-    const query = { is_current_version: true, organization_id: organizationId };
-    if (filterVal !== 'all') query.emission_mapping_status = filterVal;
-    if (searchVal.trim()) {
-      const regex = { $regex: searchVal.trim(), $options: 'i' };
-      return { ...query, $or: [{ name: regex }, { category: regex }, { sku: regex }] };
-    }
-    return query;
-  };
-
-  const load = async (page, size, searchVal, filterVal) => {
+  const loadAll = useCallback(async () => {
     if (!organizationId) return;
     setLoading(true);
     try {
-      const query = buildQuery(searchVal ?? search, filterVal ?? filter);
-      const useSize = size ?? pageSize;
-      const usePage = page ?? currentPage;
-      const skip = (usePage - 1) * useSize;
-      const [pageData, countData] = await Promise.all([
-        base44.entities.Product.filter(query, '-created_date', useSize, skip),
-        base44.entities.Product.filter(query, '-created_date', 5000, 0),
-      ]);
-      setProducts(pageData);
-      setTotalItems(countData.length);
-      setCurrentPage(usePage);
+      const all = await base44.entities.Product.filter(
+        { is_current_version: true, organization_id: organizationId },
+        '-created_date',
+        5000
+      );
+      setAllProducts(all);
     } catch (err) {
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId]);
 
-  useEffect(() => { if (organizationId) load(1, pageSize, '', 'all'); }, [organizationId]);
+  useEffect(() => { loadAll(); }, [organizationId]);
+
+  // Client-side filtering — instant and case-insensitive
+  const filteredProducts = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return allProducts.filter(p => {
+      if (filter !== 'all' && p.emission_mapping_status !== filter) return false;
+      if (!q) return true;
+      return (
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.sku || '').toLowerCase().includes(q) ||
+        (p.upc || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+    });
+  }, [allProducts, search, filter]);
+
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const products = filteredProducts.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const handleSearch = (val) => {
     setSearch(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      load(1, pageSize, val, filter);
-    }, 350);
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (val) => {
     setFilter(val);
-    load(1, pageSize, search, val);
+    setCurrentPage(1);
   };
 
   const handlePageSizeChange = (size) => {
     setPageSize(size);
-    load(1, size);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page) => {
-    load(page);
+    setCurrentPage(page);
   };
 
   const handleDelete = async (id) => {
     await base44.entities.Product.delete(id);
     toast.success('Product removed');
-    load();
+    loadAll();
   };
 
   const openEdit = (product) => {
@@ -113,19 +113,19 @@ export default function Products() {
     setExporting(true);
     try {
       const query = { is_current_version: true, organization_id: organizationId };
-      const allProducts = [];
+      const exportProducts = [];
       let skip = 0;
       const batchSize = 500;
       let hasMore = true;
       while (hasMore) {
         const batch = await base44.entities.Product.filter(query, '-created_date', batchSize, skip);
-        allProducts.push(...batch);
+        exportProducts.push(...batch);
         if (batch.length < batchSize) hasMore = false;
         else skip += batchSize;
       }
 
       const headers = ['Name', 'SKU', 'UPC', 'Category', 'Price', 'Cost Price', 'Stock', 'Unit', 'Emission Factor', 'Emission Source', 'Mapping Status', 'Age Restricted', 'Allergens', 'Is Active'];
-      const rows = allProducts.map(p => [
+      const rows = exportProducts.map(p => [
         p.name || '',
         p.sku || '',
         p.upc || '',
@@ -160,7 +160,7 @@ export default function Products() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success(`Exported ${allProducts.length} products to CSV`);
+      toast.success(`Exported ${exportProducts.length} products to CSV`);
     } catch (err) {
       toast.error(`Export failed: ${err.message}`);
     } finally {
@@ -318,8 +318,8 @@ export default function Products() {
           )}
           </div>
           <Pagination
-          currentPage={currentPage}
-          totalPages={Math.max(1, Math.ceil(totalItems / pageSize))}
+          currentPage={safePage}
+          totalPages={totalPages}
           totalItems={totalItems}
           pageSize={pageSize}
           onPageChange={handlePageChange}
@@ -331,7 +331,7 @@ export default function Products() {
         <ProductModal
           product={editProduct}
           onClose={() => setShowModal(false)}
-          onSaved={() => { setShowModal(false); load(); }}
+          onSaved={() => { setShowModal(false); loadAll(); }}
         />
       )}
 
@@ -345,7 +345,7 @@ export default function Products() {
       {showBulkUpload && (
         <BulkUploadModal
           onClose={() => setShowBulkUpload(false)}
-          onSynced={() => load(1)}
+          onSynced={() => loadAll()}
         />
       )}
 
@@ -353,7 +353,7 @@ export default function Products() {
         <ClearCatalogModal
           organizationId={organizationId}
           onClose={() => setShowClearCatalog(false)}
-          onCleared={() => load(1)}
+          onCleared={() => loadAll()}
         />
       )}
     </div>
