@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Download, Package, Star, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ export default function Products() {
   const [pageSize, setPageSize] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const debounceRef = useRef(null);
   const { organizationId } = useOrganization();
 
   const buildQuery = (searchVal, filterVal) => {
@@ -71,7 +72,10 @@ export default function Products() {
 
   const handleSearch = (val) => {
     setSearch(val);
-    load(1, pageSize, val, filter);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      load(1, pageSize, val, filter);
+    }, 350);
   };
 
   const handleFilterChange = (val) => {

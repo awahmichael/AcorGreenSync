@@ -48,7 +48,7 @@ export default function POS() {
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
-    base44.entities.Product.filter({ is_active: true, is_current_version: true, organization_id: organizationId }).then(async (prods) => {
+    base44.entities.Product.filter({ is_active: true, is_current_version: true, organization_id: organizationId }, '-name', 5000).then(async (prods) => {
       setProducts(prods);
       await refreshCache();
     }).finally(() => setLoading(false));
@@ -56,12 +56,15 @@ export default function POS() {
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, [organizationId]);
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.category || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.upc || '').includes(search) ||
-    (p.sku || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = search.trim()
+    ? products.filter(p => {
+        const q = search.toLowerCase().trim();
+        return p.name.toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q) ||
+          (p.upc || '').toLowerCase().includes(q) ||
+          (p.sku || '').toLowerCase().includes(q);
+      })
+    : products.slice(0, 200);
 
   const addToCart = (product) => {
     setCart(prev => {
