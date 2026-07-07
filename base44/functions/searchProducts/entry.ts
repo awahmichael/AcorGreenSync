@@ -3,8 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const isAuthed = await base44.auth.isAuthenticated();
+    if (!isAuthed) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const {
@@ -28,16 +28,31 @@ Deno.serve(async (req) => {
       ...(filter_status !== 'all' ? { emission_mapping_status: filter_status } : {}),
     };
 
-    // Add search across name, sku, upc, category
+    // Smart search strategy: short/numeric queries (barcodes, SKU prefixes) are
+    // extremely expensive as unanchored regexes — they match nearly every record.
+    // For short queries, anchor to ^ and only search identifier fields (sku, upc)
+    // which is the realistic use case (barcode scan / SKU lookup). For longer
+    // queries, search all text fields with a contains-match.
     const q = String(search).trim();
     if (q) {
-      const regex = { $regex: q, $options: 'i' };
-      query.$or = [
-        { name: regex },
-        { sku: regex },
-        { upc: regex },
-        { category: regex },
-      ];
+      if (q.length <= 3) {
+        // Short query — anchored prefix match on identifier fields only
+        const anchored = { $regex: `^${q}`, $options: 'i' };
+        query.$or = [
+          { sku: anchored },
+          { upc: anchored },
+          { name: anchored },
+        ];
+      } else {
+        // Longer query — contains match across all text fields
+        const regex = { $regex: q, $options: 'i' };
+        query.$or = [
+          { name: regex },
+          { sku: regex },
+          { upc: regex },
+          { category: regex },
+        ];
+      }
     }
 
     const skip = (page - 1) * page_size;
