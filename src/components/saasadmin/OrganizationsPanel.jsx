@@ -119,8 +119,11 @@ export default function OrganizationsPanel({ onOrgsChange }) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold">{org.name}</span>
                         <Badge className={PLAN_COLORS[org.plan_type] || 'bg-gray-100'}>{org.plan_type}</Badge>
-                        <Badge className={STATUS_COLORS[org.subscription_status] || 'bg-gray-100'}>{org.subscription_status}</Badge>
-                        {!org.is_active && <Badge className="bg-red-100 text-red-700">Inactive</Badge>}
+                        {org.is_active ? (
+                          <Badge className={STATUS_COLORS[org.subscription_status] || 'bg-gray-100'}>{org.subscription_status}</Badge>
+                        ) : (
+                          <Badge className="bg-red-100 text-red-700">Inactive</Badge>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {org.billing_cycle || 'monthly'} billing · {orgStores.length}/{org.max_locations || '∞'} locations · {org.vat_number || 'No VAT number'}
