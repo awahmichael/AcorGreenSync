@@ -44,6 +44,7 @@ export function createInventorySku(data) {
     carbon_coefficient_climatiq: Number(data.emission_factor_climatiq) || 0,
     emission_factor_source: data.emission_factor_source || 'Pending',
     emission_mapping_status: data.emission_mapping_status || 'Pending',
+    category: data.category || data.category_id || '',
     category_id: data.category_id || data.category || '',
     upc: data.upc || '',
     sku: data.sku || '',
