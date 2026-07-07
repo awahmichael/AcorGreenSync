@@ -48,7 +48,7 @@ export default function POS() {
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
-    base44.entities.Product.filter({ is_active: true, organization_id: organizationId }).then(async (prods) => {
+    base44.entities.Product.filter({ is_active: true, is_current_version: true, organization_id: organizationId }).then(async (prods) => {
       setProducts(prods);
       await refreshCache();
     }).finally(() => setLoading(false));
