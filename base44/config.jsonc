@@ -1,5 +1,5 @@
 {
-  "name": "New App",
+  "name": "AcorCloud Green-Sync",
   "site": {
     "installCommand": "npm install",
     "buildCommand": "npm run build",
