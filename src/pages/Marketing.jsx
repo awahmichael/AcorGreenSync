@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Trash2, Mail, MessageSquare, Send, Eye, MousePointerClick } from 'lucide-react';
 import { toast } from 'sonner';
+import ScoutControlPanel from '@/components/marketing/ScoutControlPanel';
 
 const statusColors = { draft: 'bg-gray-100 text-gray-700', scheduled: 'bg-blue-100 text-blue-700', sending: 'bg-amber-100 text-amber-700', sent: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' };
 
@@ -28,6 +29,7 @@ export default function Marketing() {
         <div><h1 className="text-2xl font-bold text-foreground">Marketing Campaigns</h1><p className="text-sm text-muted-foreground mt-0.5">Email & SMS campaigns with customer segmentation</p></div>
         <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />New Campaign</Button>
       </div>
+      <ScoutControlPanel />
       {loading ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-muted rounded-xl animate-pulse" />)}</div> : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {campaigns.map(c => (
