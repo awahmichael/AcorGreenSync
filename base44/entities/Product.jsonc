@@ -40,6 +40,40 @@
       ],
       "default": "unit"
     },
+    "is_weighted_item": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, POS activates scale listener and accepts decimal quantity input instead of discrete +1"
+    },
+    "sell_unit": {
+      "type": "string",
+      "enum": [
+        "g",
+        "kg",
+        "ml",
+        "litre",
+        "unit"
+      ],
+      "default": "kg",
+      "description": "Unit used at POS for weighted items (display + price calculation)"
+    },
+    "buy_unit": {
+      "type": "string",
+      "enum": [
+        "kg",
+        "litre",
+        "crate",
+        "box",
+        "unit"
+      ],
+      "default": "kg",
+      "description": "Unit the supplier invoices (for stock reconciliation)"
+    },
+    "unit_conversion_factor": {
+      "type": "number",
+      "default": 1,
+      "description": "Multiplier to convert buy_unit into sell_unit (e.g. buy kg / sell g = 1000)"
+    },
     "emission_factor_defra": {
       "type": "number",
       "description": "kg CO2e per unit from DEFRA"

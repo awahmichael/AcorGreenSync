@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Leaf, CheckCircle2, AlertCircle, Search, Loader2, Star } from 'lucide-react';
+import { Leaf, CheckCircle2, AlertCircle, Search, Loader2, Star, Scale } from 'lucide-react';
 import { useRmlEngine } from '@/hooks/useRmlEngine';
 import RmlMatchBadge from '@/components/products/RmlMatchBadge';
 
 const CATEGORIES = ['Food & Beverages', 'Clothing & Textiles', 'Electronics', 'Furniture', 'Household Goods', 'Health & Beauty', 'Sports & Leisure', 'Books & Stationery', 'Automotive', 'Other'];
 const UNITS = ['unit', 'kg', 'litre', 'tonne', 'm2', 'm3', 'kWh'];
+const SELL_UNITS = ['g', 'kg', 'ml', 'litre', 'unit'];
+const BUY_UNITS = ['kg', 'litre', 'crate', 'box', 'unit'];
 const SOURCES = ['DEFRA', 'Climatiq', 'Manual'];
 const ALLERGENS = ['gluten', 'crustaceans', 'eggs', 'fish', 'peanuts', 'soybeans', 'milk', 'nuts', 'celery', 'mustard', 'sesame', 'sulphites', 'lupin', 'molluscs'];
 const AGE_TYPES = ['none', 'alcohol', 'tobacco', 'knives', 'solvents', 'fireworks', 'lottery', 'other'];
@@ -25,6 +27,10 @@ export default function ProductModal({ product, onClose, onSaved }) {
     price: product?.price || '',
     cost_price: product?.cost_price || '',
     unit: product?.unit || 'unit',
+    is_weighted_item: product?.is_weighted_item || false,
+    sell_unit: product?.sell_unit || 'kg',
+    buy_unit: product?.buy_unit || 'kg',
+    unit_conversion_factor: product?.unit_conversion_factor || 1,
     emission_factor_defra: product?.emission_factor_defra || '',
     emission_factor_climatiq: product?.emission_factor_climatiq || '',
     emission_factor_source: product?.emission_factor_source || 'Pending',
@@ -94,6 +100,10 @@ export default function ProductModal({ product, onClose, onSaved }) {
       min_age: form.age_restricted ? parseInt(form.min_age) || 18 : 0,
       allergens: form.allergens || [],
       is_favourite: form.is_favourite || false,
+      is_weighted_item: form.is_weighted_item || false,
+      sell_unit: form.is_weighted_item ? form.sell_unit : 'kg',
+      buy_unit: form.is_weighted_item ? form.buy_unit : 'kg',
+      unit_conversion_factor: form.is_weighted_item ? (parseFloat(form.unit_conversion_factor) || 1) : 1,
       emission_mapping_status: hasEmission ? 'Mapped' : 'Pending',
       defra_factor_id: rmlResult?.factor?.id || product?.defra_factor_id || null,
       defra_factor_version: rmlResult?.factor?.version || product?.defra_factor_version || null,
@@ -170,6 +180,60 @@ export default function ProductModal({ product, onClose, onSaved }) {
               </Select>
             </div>
           </div>
+
+          {/* Weighted Item Toggle */}
+          <div className="flex items-center justify-between bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-3">
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Scale className="w-4 h-4 text-blue-500" />
+                Sell by Weight
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">POS activates scale listener for this item</p>
+            </div>
+            <button
+              onClick={() => set('is_weighted_item', !form.is_weighted_item)}
+              className={`w-10 h-5 rounded-full transition-colors ${form.is_weighted_item ? 'bg-blue-500' : 'bg-muted'}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full transition-transform ${form.is_weighted_item ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {/* Conditional weight fields */}
+          {form.is_weighted_item && (
+            <div className="bg-blue-50/30 border border-blue-100 rounded-xl p-4 grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Sell Unit</Label>
+                <Select value={form.sell_unit} onValueChange={v => set('sell_unit', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SELL_UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Buy Unit</Label>
+                <Select value={form.buy_unit} onValueChange={v => set('buy_unit', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BUY_UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Conversion Factor</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={form.unit_conversion_factor}
+                  onChange={e => set('unit_conversion_factor', e.target.value)}
+                  placeholder="e.g. 1000"
+                />
+              </div>
+              <div className="col-span-3 text-xs text-muted-foreground">
+                1 {form.buy_unit} = {form.unit_conversion_factor || 1} {form.sell_unit}
+              </div>
+            </div>
+          )}
 
           {/* Image URL */}
           <div className="space-y-1.5">

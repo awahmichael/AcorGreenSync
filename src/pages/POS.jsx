@@ -19,6 +19,9 @@ import QuickKeys from '@/components/pos/QuickKeys';
 import ParkedTransactions from '@/components/pos/ParkedTransactions';
 import ZReport from '@/components/pos/ZReport';
 import CameraProductSearch from '@/components/pos/CameraProductSearch';
+import WeightEntryModal from '@/components/pos/WeightEntryModal';
+import { useScaleStream } from '@/hooks/useScaleStream';
+import { Scale } from 'lucide-react';
 import { getPrintSettings } from '@/lib/printSettings';
 
 export default function POS() {
@@ -38,7 +41,9 @@ export default function POS() {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [parkedTxns, setParkedTxns] = useState([]);
+  const [weightEntryProduct, setWeightEntryProduct] = useState(null);
   const isOnline = useOnlineStatus();
+  const scale = useScaleStream();
   const { addToQueue } = useOfflineQueue();
   const { processingEngine, syncCoordinator, refreshCache } = useRml();
   const { organizationId, currentOrg } = useOrganization();
@@ -80,6 +85,11 @@ export default function POS() {
   }, [products, search, searchResults]);
 
   const addToCart = (product) => {
+    // Weighted items open the scale modal instead of adding directly
+    if (product.is_weighted_item) {
+      setWeightEntryProduct(product);
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(i => i.product_id === product.id);
       if (existing) {
@@ -101,9 +111,44 @@ export default function POS() {
         age_restriction_type: product.age_restriction_type || 'none',
         min_age: product.min_age || 0,
         allergens: product.allergens || [],
+        is_weighted_item: false,
         _productData: product,
       }];
     });
+  };
+
+  // Handle weighted item confirmation from WeightEntryModal
+  const handleWeightConfirm = (weight, lineTotal) => {
+    const product = weightEntryProduct;
+    if (!product) return;
+    setCart(prev => {
+      const existing = prev.find(i => i.product_id === product.id);
+      if (existing) {
+        // Replace quantity with new weighed amount
+        return prev.map(i => i.product_id === product.id ? { ...i, quantity: weight } : i);
+      }
+      return [...prev, {
+        product_id: product.id,
+        product_name: product.name,
+        category: product.category,
+        quantity: weight,
+        unit_price: product.price,
+        unit_cost: product.cost_price || 0,
+        unit: product.sell_unit || product.unit || 'kg',
+        sell_unit: product.sell_unit || 'kg',
+        is_weighted_item: true,
+        emission_factor: product.emission_factor_defra || product.emission_factor_climatiq || 0,
+        emission_factor_source: product.emission_factor_source || 'Pending',
+        kg_co2e: product.emission_factor_defra || product.emission_factor_climatiq || 0,
+        scope3_category: product.scope3_category || 'Both',
+        age_restricted: product.age_restricted || false,
+        age_restriction_type: product.age_restriction_type || 'none',
+        min_age: product.min_age || 0,
+        allergens: product.allergens || [],
+        _productData: product,
+      }];
+    });
+    setWeightEntryProduct(null);
   };
 
   // Barcode scan handler
@@ -400,6 +445,19 @@ export default function POS() {
           />
           <div className="flex-1" />
           <CameraProductSearch products={products} onMatch={addToCart} />
+          <button
+            onClick={() => scale.isConnected ? scale.disconnect() : scale.connect()}
+            disabled={scale.isConnecting || !scale.supportsWebSerial}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+              scale.isConnected
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-white border-border text-muted-foreground hover:border-primary'
+            }`}
+            title={scale.supportsWebSerial ? 'Connect hardware scale' : 'Web Serial not supported'}
+          >
+            <Scale className="w-3.5 h-3.5" />
+            {scale.isConnecting ? 'Connecting…' : scale.isConnected ? 'Scale Connected' : 'Connect Scale'}
+          </button>
           <ZReport />
         </div>
 
@@ -477,12 +535,21 @@ export default function POS() {
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">£{product.price?.toFixed(2)}</span>
+                  <span className="font-bold text-foreground">
+                    £{product.price?.toFixed(2)}
+                    {product.is_weighted_item && <span className="text-xs font-normal text-muted-foreground">/{product.sell_unit}</span>}
+                  </span>
                   <div className="flex items-center gap-1 text-xs text-primary">
                     <Leaf className="w-3 h-3" />
                     <span>{(product.emission_factor_defra || 0).toFixed(2)}</span>
                   </div>
                 </div>
+                {product.is_weighted_item && (
+                  <div className="mt-0.5 flex items-center gap-1 text-[10px] text-blue-600 font-medium">
+                    <Scale className="w-2.5 h-2.5" />
+                    Weighed at POS
+                  </div>
+                )}
                 {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
                   <div className="mt-1 text-xs text-amber-600">⚠ Low stock ({product.stock_quantity})</div>
                 )}
@@ -664,6 +731,15 @@ export default function POS() {
           </div>
         )}
       </div>
+
+      {weightEntryProduct && (
+        <WeightEntryModal
+          product={weightEntryProduct}
+          scale={scale}
+          onConfirm={handleWeightConfirm}
+          onClose={() => setWeightEntryProduct(null)}
+        />
+      )}
 
       {showPayment && (
         <PaymentModal
