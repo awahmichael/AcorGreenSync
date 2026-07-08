@@ -182,7 +182,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
           </div>
 
           {/* Weighted Item Toggle */}
-          <div className="flex items-center justify-between bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-3">
+          <div className="flex items-center justify-between bg-blue-50 border-2 border-blue-300 rounded-xl px-4 py-3">
             <div>
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Scale className="w-4 h-4 text-blue-500" />
@@ -192,7 +192,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
             </div>
             <button
               onClick={() => set('is_weighted_item', !form.is_weighted_item)}
-              className={`w-10 h-5 rounded-full transition-colors ${form.is_weighted_item ? 'bg-blue-500' : 'bg-muted'}`}
+              className={`w-10 h-5 rounded-full transition-colors ${form.is_weighted_item ? 'bg-blue-500' : 'bg-slate-300'}`}
             >
               <div className={`w-4 h-4 bg-white rounded-full transition-transform ${form.is_weighted_item ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
