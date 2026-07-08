@@ -1,0 +1,63 @@
+{
+  "name": "ScoutConfig",
+  "type": "object",
+  "properties": {
+    "is_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master kill-switch. When false, the Scout engine is completely dormant and will not ingest any leads."
+    },
+    "target_cities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "UK cities to target for Companies House lead discovery (e.g. Manchester, Birmingham)"
+    },
+    "target_sic_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "47110",
+        "47190",
+        "47210",
+        "47220",
+        "47250",
+        "47260",
+        "47290",
+        "47710",
+        "47721",
+        "47722",
+        "47730",
+        "47740",
+        "47750",
+        "47760",
+        "47765",
+        "47770",
+        "47780",
+        "47791",
+        "47799"
+      ],
+      "description": "SIC codes to filter by (retail trade codes 47xxx by default)"
+    },
+    "daily_lead_limit": {
+      "type": "number",
+      "default": 20,
+      "description": "Maximum number of new leads to ingest per day (rate-limiting for email reputation)"
+    },
+    "leads_ingested_today": {
+      "type": "number",
+      "default": 0,
+      "description": "Running count of leads ingested today; resets when last_ingested_date changes"
+    },
+    "last_ingested_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the last ingestion run (used to detect day rollover for counter reset)"
+    }
+  },
+  "required": []
+}

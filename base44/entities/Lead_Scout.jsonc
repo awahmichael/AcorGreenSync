@@ -1,0 +1,92 @@
+{
+  "name": "Lead_Scout",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Registered company name from Companies House"
+    },
+    "company_number": {
+      "type": "string",
+      "description": "Companies House unique company number (used for deduplication)"
+    },
+    "registered_address": {
+      "type": "string",
+      "description": "Full registered office address"
+    },
+    "city": {
+      "type": "string",
+      "description": "City from registered office address"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "Postcode from registered office address"
+    },
+    "sic_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "SIC classification codes from Companies House"
+    },
+    "company_status": {
+      "type": "string",
+      "description": "Company status (active, dissolved, etc.)"
+    },
+    "incorporation_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Company incorporation date"
+    },
+    "scout_city": {
+      "type": "string",
+      "description": "The target city that was used to discover this lead"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Enriched contact email (populated during enrichment)"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Enriched contact phone (populated during enrichment)"
+    },
+    "website": {
+      "type": "string",
+      "description": "Company website URL (populated during enrichment)"
+    },
+    "enrichment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "enriched",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Status of contact data enrichment"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "enriched",
+        "promoted",
+        "rejected"
+      ],
+      "default": "new",
+      "description": "Lifecycle: new -> enriched -> promoted (to Lead entity) or rejected"
+    },
+    "promoted_to_lead_id": {
+      "type": "string",
+      "description": "ID of the Lead record created when this scout lead was promoted"
+    },
+    "source": {
+      "type": "string",
+      "default": "companies_house"
+    }
+  },
+  "required": [
+    "company_name",
+    "company_number"
+  ]
+}
