@@ -21,6 +21,7 @@ export function useScaleStream() {
 
   const portRef = useRef(null);
   const readerRef = useRef(null);
+  const writerRef = useRef(null);
   const keepReadingRef = useRef(false);
   const bufferRef = useRef('');
   const lastWeightsRef = useRef([]);
@@ -103,6 +104,11 @@ export function useScaleStream() {
       const reader = port.readable.getReader();
       readerRef.current = reader;
 
+      // Capture writable stream for sending commands (Zero/Tare)
+      if (port.writable) {
+        writerRef.current = port.writable.getWriter();
+      }
+
       setIsConnected(true);
       readLoop();
       return true;
@@ -120,12 +126,32 @@ export function useScaleStream() {
     }
   }, [readLoop]);
 
+  const zero = useCallback(async () => {
+    if (!writerRef.current) {
+      setError('Scale does not support remote zero command.');
+      return false;
+    }
+    try {
+      // Common zero/tare commands: "Z\r\n" (Mettler Toledo), "Z\r" (generic)
+      const encoder = new TextEncoder();
+      await writerRef.current.write(encoder.encode('Z\r\n'));
+      return true;
+    } catch (err) {
+      setError(`Zero command failed: ${err.message}`);
+      return false;
+    }
+  }, []);
+
   const disconnect = useCallback(async () => {
     keepReadingRef.current = false;
     if (readerRef.current) {
       try { await readerRef.current.cancel(); } catch (_) {}
       try { await readerRef.current.releaseLock(); } catch (_) {}
       readerRef.current = null;
+    }
+    if (writerRef.current) {
+      try { await writerRef.current.releaseLock(); } catch (_) {}
+      writerRef.current = null;
     }
     if (portRef.current) {
       try { await portRef.current.close(); } catch (_) {}
@@ -143,6 +169,9 @@ export function useScaleStream() {
       if (readerRef.current) {
         try { readerRef.current.releaseLock(); } catch (_) {}
       }
+      if (writerRef.current) {
+        try { writerRef.current.releaseLock(); } catch (_) {}
+      }
       if (portRef.current) {
         try { portRef.current.close(); } catch (_) {}
       }
@@ -158,5 +187,6 @@ export function useScaleStream() {
     supportsWebSerial,
     connect,
     disconnect,
+    zero,
   };
 }

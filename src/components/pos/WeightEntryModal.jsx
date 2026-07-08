@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Scale, Loader2, CheckCircle2, WifiOff } from 'lucide-react';
+import { Scale, Loader2, CheckCircle2, WifiOff, RotateCcw } from 'lucide-react';
 
 /**
  * WeightEntryModal — shown when cashier taps a weighted product in POS.
@@ -87,6 +87,17 @@ export default function WeightEntryModal({ product, scale, onConfirm, onClose })
                   className="h-7 text-xs"
                 >
                   {scale.isConnecting ? 'Connecting…' : 'Connect Scale'}
+                </Button>
+              )}
+              {scale.isConnected && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={scale.zero}
+                  className="h-7 text-xs"
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Zero
                 </Button>
               )}
             </div>
