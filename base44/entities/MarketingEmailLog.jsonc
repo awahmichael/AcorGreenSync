@@ -1,0 +1,67 @@
+{
+  "name": "MarketingEmailLog",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Email address the message was sent to"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Name of the recipient (if known)"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "body_preview": {
+      "type": "string",
+      "description": "First ~200 chars of the email body for quick scanning"
+    },
+    "email_type": {
+      "type": "string",
+      "enum": [
+        "welcome",
+        "nurture_day1",
+        "nurture_day4",
+        "nurture_day10",
+        "sales_notification",
+        "campaign",
+        "scout_outreach"
+      ],
+      "description": "Which automated workflow sent this email"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "failed"
+      ],
+      "default": "sent"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if status is failed"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "ID of the Lead or Lead_Scout record this email relates to"
+    },
+    "lead_source": {
+      "type": "string",
+      "enum": [
+        "website",
+        "scout",
+        "manual",
+        "system"
+      ],
+      "default": "system"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "subject",
+    "email_type",
+    "status"
+  ]
+}
