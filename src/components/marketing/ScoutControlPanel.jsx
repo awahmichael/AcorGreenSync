@@ -74,23 +74,30 @@ export default function ScoutControlPanel() {
   };
 
   const addCity = async () => {
-    if (!newCity.trim()) return;
-    const updated = [...(config.target_cities || []), newCity.trim()];
-    const newConfig = await base44.entities.ScoutConfig.update(config.id, { target_cities: updated });
-    setConfig(newConfig);
-    setNewCity('');
+    if (!newCity.trim()) { toast.error('Enter a city name'); return; }
+    try {
+      const updated = [...(config.target_cities || []), newCity.trim()];
+      const newConfig = await base44.entities.ScoutConfig.update(config.id, { target_cities: updated });
+      setConfig(newConfig);
+      setNewCity('');
+      toast.success(`Added ${newCity.trim()}`);
+    } catch (e) { toast.error(e.message); }
   };
 
   const removeCity = async (city) => {
-    const updated = (config.target_cities || []).filter(c => c !== city);
-    const newConfig = await base44.entities.ScoutConfig.update(config.id, { target_cities: updated });
-    setConfig(newConfig);
+    try {
+      const updated = (config.target_cities || []).filter(c => c !== city);
+      const newConfig = await base44.entities.ScoutConfig.update(config.id, { target_cities: updated });
+      setConfig(newConfig);
+    } catch (e) { toast.error(e.message); }
   };
 
   const updateLimit = async (val) => {
     const num = parseInt(val) || 0;
-    const newConfig = await base44.entities.ScoutConfig.update(config.id, { daily_lead_limit: num });
-    setConfig(newConfig);
+    try {
+      const newConfig = await base44.entities.ScoutConfig.update(config.id, { daily_lead_limit: num });
+      setConfig(newConfig);
+    } catch (e) { toast.error(e.message); }
   };
 
   if (loading || !config) {
