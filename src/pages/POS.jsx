@@ -19,6 +19,7 @@ import QuickAccessPanel from '@/components/pos/QuickAccessPanel';
 import ParkedTransactions from '@/components/pos/ParkedTransactions';
 import ZReport from '@/components/pos/ZReport';
 import CameraProductSearch from '@/components/pos/CameraProductSearch';
+import CameraBarcodeScanner from '@/components/pos/CameraBarcodeScanner';
 import WeightEntryModal from '@/components/pos/WeightEntryModal';
 import { useScaleStream } from '@/hooks/useScaleStream';
 import { Scale } from 'lucide-react';
@@ -540,6 +541,7 @@ export default function POS() {
             onDelete={deleteParked}
           />
           <div className="flex-1" />
+          <CameraBarcodeScanner onScan={handleScan} />
           <CameraProductSearch products={products} onMatch={addToCart} />
           <button
             onClick={() => scale.isConnected ? scale.disconnect() : scale.connect()}
