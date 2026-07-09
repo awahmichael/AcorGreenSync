@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, WifiOff, Search, Leaf, X, User, Tag, PoundSterling, Clock, Pause, Star, AlertTriangle, Image as ImageIcon } from 'lucide-react';
@@ -42,6 +42,17 @@ export default function POS() {
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [parkedTxns, setParkedTxns] = useState([]);
   const [weightEntryProduct, setWeightEntryProduct] = useState(null);
+
+  // Dedup guard — prevents the same barcode from being added twice when both
+  // the hardware scanner listener and the search input catch the same scan.
+  const lastScanRef = useRef({ code: '', time: 0 });
+  const isDuplicateScan = (code) => {
+    const now = Date.now();
+    const last = lastScanRef.current;
+    if (last.code === code && now - last.time < 1000) return true;
+    lastScanRef.current = { code, time: now };
+    return false;
+  };
   const isOnline = useOnlineStatus();
   const scale = useScaleStream();
   const { addToQueue } = useOfflineQueue();
@@ -191,6 +202,7 @@ export default function POS() {
 
   // Barcode scan handler — uses O(1) barcodeMap for instant lookup
   const handleScan = (code) => {
+    if (isDuplicateScan(code)) return;
     const match = barcodeMap.get(code) || searchResults.find(p => p.upc === code || p.sku === code);
     if (match) {
       addToCart(match);
@@ -214,6 +226,7 @@ export default function POS() {
     if (trimmed.length >= 3) {
       const exactMatch = barcodeMap.get(trimmed);
       if (exactMatch) {
+        if (isDuplicateScan(trimmed)) return;
         addToCart(exactMatch);
         setSearch('');
         setLastScanned({ found: true, name: exactMatch.name, code: trimmed });
