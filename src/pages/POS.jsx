@@ -52,8 +52,9 @@ export default function POS() {
   const cashierName = user?.full_name || user?.email || 'Cashier';
   const cashierId = user?.id || '';
 
-  const debouncedSearch = useDebounce(search, 300);
+  const debouncedSearch = useDebounce(search, 150);
   const [searchResults, setSearchResults] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
@@ -66,6 +67,7 @@ export default function POS() {
   }, [organizationId]);
 
   // Server-side search via backend function — handles 20k+ catalogs
+  // Also checks for exact barcode/SKU match in the response for instant add
   useEffect(() => {
     const q = debouncedSearch.trim();
     if (!q || !organizationId) { setSearchResults([]); return; }
@@ -75,28 +77,23 @@ export default function POS() {
       page: 1,
       page_size: 200,
       is_active_only: true,
-    }).then(res => setSearchResults(res.data.items))
-      .catch(() => setSearchResults([]));
+    }).then(res => {
+      const items = res.data.items || [];
+      // Instant add if exact barcode/SKU match found from server
+      const exactMatch = items.find(p => p.upc === q || p.sku === q);
+      if (exactMatch) {
+        addToCart(exactMatch);
+        setSearch('');
+        setSearchResults([]);
+        setSelectedIndex(-1);
+        setLastScanned({ found: true, name: exactMatch.name, code: q });
+        toast.success(`Added: ${exactMatch.name}`, { duration: 1500 });
+      } else {
+        setSearchResults(items);
+        setSelectedIndex(-1);
+      }
+    }).catch(() => setSearchResults([]));
   }, [debouncedSearch, organizationId]);
-
-  // Auto-add to cart when server search results contain an exact barcode/SKU match
-  useEffect(() => {
-    if (!search.trim()) return;
-    const trimmed = search.trim();
-    const exactMatch = searchResults.find(p => p.upc === trimmed || p.sku === trimmed);
-    if (exactMatch) {
-      addToCart(exactMatch);
-      setSearch('');
-      setSearchResults([]);
-      setLastScanned({ found: true, name: exactMatch.name, code: trimmed });
-      toast.success(`Added: ${exactMatch.name}`, { duration: 1500 });
-    }
-  }, [searchResults]);
-
-  const filteredProducts = useMemo(() => {
-    if (!search.trim()) return products.slice(0, 200);
-    return searchResults;
-  }, [products, search, searchResults]);
 
   const addToCart = (product) => {
     // Weighted items open the scale modal instead of adding directly
@@ -181,11 +178,12 @@ export default function POS() {
 
   useBarcodeScanner({ onScan: handleScan, enabled: !showPayment });
 
-  // Check for exact barcode/SKU match on every keystroke (local products only — server results checked via effect)
+  // Instant local barcode/SKU match check on every keystroke (no debounce delay)
   const handleSearchChange = (value) => {
     setSearch(value);
+    setSelectedIndex(-1);
     const trimmed = value.trim();
-    if (trimmed.length >= 6) {
+    if (trimmed.length >= 4) {
       const exactMatch = products.find(p => p.upc === trimmed || p.sku === trimmed);
       if (exactMatch) {
         addToCart(exactMatch);
@@ -194,6 +192,33 @@ export default function POS() {
         setLastScanned({ found: true, name: exactMatch.name, code: trimmed });
         toast.success(`Added: ${exactMatch.name}`, { duration: 1500 });
       }
+    }
+  };
+
+  // Keyboard navigation: ArrowUp/Down to move, Enter to add highlighted item, Escape to clear
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'ArrowDown' && searchResults.length > 0) {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
+    } else if (e.key === 'ArrowUp' && searchResults.length > 0) {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+        e.preventDefault();
+        const product = searchResults[selectedIndex];
+        addToCart(product);
+        setSearch('');
+        setSearchResults([]);
+        setSelectedIndex(-1);
+        toast.success(`Added: ${product.name}`, { duration: 1500 });
+      } else if (search.trim().length >= 6) {
+        handleScan(search.trim());
+      }
+    } else if (e.key === 'Escape') {
+      setSearch('');
+      setSearchResults([]);
+      setSelectedIndex(-1);
     }
   };
 
@@ -501,39 +526,33 @@ export default function POS() {
                 placeholder="Scan barcode or type to search..."
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && search.trim().length >= 6) {
-                    handleScan(search.trim());
-                  } else if (e.key === 'Escape') {
-                    setSearch('');
-                    setSearchResults([]);
-                  }
-                }}
+                onKeyDown={handleSearchKeyDown}
                 className="pl-9"
+                autoComplete="off"
               />
               {/* Dropdown results — replaces the tile grid */}
               {search.trim() && searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-30 max-h-72 overflow-y-auto">
-                  {searchResults.map(product => (
+                  {searchResults.map((product, idx) => (
                     <button
                       key={product.id}
-                      onMouseDown={(e) => { e.preventDefault(); addToCart(product); setSearch(''); setSearchResults([]); }}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 border-b border-border last:border-0 text-left"
+                      onMouseDown={(e) => { e.preventDefault(); addToCart(product); setSearch(''); setSearchResults([]); setSelectedIndex(-1); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 border-b border-border last:border-0 text-left transition-colors ${idx === selectedIndex ? 'bg-blue-500 text-white' : 'hover:bg-muted/50'}`}
                     >
                       {product.image_url ? (
                         <img src={product.image_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                          <ImageIcon className="w-3.5 h-3.5 text-muted-foreground/40" />
+                        <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${idx === selectedIndex ? 'bg-blue-400' : 'bg-muted'}`}>
+                          <ImageIcon className={`w-3.5 h-3.5 ${idx === selectedIndex ? 'text-white/60' : 'text-muted-foreground/40'}`} />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground truncate">{product.name}</div>
-                        <div className="text-xs text-muted-foreground">{product.category}</div>
+                        <div className="text-sm font-medium truncate">{product.name}</div>
+                        <div className={`text-xs ${idx === selectedIndex ? 'text-blue-100' : 'text-muted-foreground'}`}>{product.category}</div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-sm font-bold text-foreground">£{product.price?.toFixed(2)}</span>
-                        <div className="flex items-center gap-0.5 text-xs text-primary">
+                        <span className="text-sm font-bold">£{product.price?.toFixed(2)}</span>
+                        <div className={`flex items-center gap-0.5 text-xs ${idx === selectedIndex ? 'text-blue-100' : 'text-primary'}`}>
                           <Leaf className="w-3 h-3" />
                         </div>
                       </div>
