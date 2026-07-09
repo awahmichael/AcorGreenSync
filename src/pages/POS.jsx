@@ -52,8 +52,7 @@ export default function POS() {
   const cashierName = user?.full_name || user?.email || 'Cashier';
   const cashierId = user?.id || '';
 
-  const debouncedSearch = useDebounce(search, 350);
-  const [searchResults, setSearchResults] = useState([]);
+  const [serverSearchResults, setServerSearchResults] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // O(1) barcode/SKU lookup — instant match on every keystroke, no array scan
@@ -66,6 +65,22 @@ export default function POS() {
     return map;
   }, [products]);
 
+  // Instant local search — computed during render, zero network delay.
+  // Filters the cached product list synchronously so results appear immediately.
+  const localSearchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || q.length < 2) return [];
+    return products.filter(p =>
+      p.name?.toLowerCase().includes(q) ||
+      p.sku?.toLowerCase().includes(q) ||
+      p.upc?.includes(q) ||
+      p.category?.toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [search, products]);
+
+  // Combined results: local cache takes priority, server is fallback only
+  const searchResults = localSearchResults.length > 0 ? localSearchResults : serverSearchResults;
+
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
     base44.entities.Product.filter({ is_active: true, is_current_version: true, organization_id: organizationId }, '-name', 200).then(async (prods) => {
@@ -76,36 +91,36 @@ export default function POS() {
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, [organizationId]);
 
-  // Server-side text search — fires 350ms after typing stops.
-  // Barcode/SKU exact matches are caught instantly by handleSearchChange via barcodeMap.
-  // This effect handles text searches and products not in the local 200-item cache.
+  // Server-side fallback — ONLY fires when the local cache has zero results.
+  // Debounced at 500ms so it never fires during rapid barcode scanning.
+  const debouncedSearch = useDebounce(search, 500);
   useEffect(() => {
     const q = debouncedSearch.trim();
-    if (!q || !organizationId) { setSearchResults([]); return; }
-    if (barcodeMap.has(q)) return; // already handled instantly
+    if (!q || !organizationId) return;
+    if (barcodeMap.has(q)) return;               // barcode already matched instantly
+    if (localSearchResults.length > 0) return;    // local results exist — skip server
+
     base44.functions.invoke('searchProducts', {
       organization_id: organizationId,
       search: q,
       page: 1,
-      page_size: 200,
+      page_size: 50,
       is_active_only: true,
     }).then(res => {
       const items = res.data.items || [];
-      // Check server results for exact barcode match (product not in local cache)
       const exactMatch = items.find(p => p.upc === q || p.sku === q);
       if (exactMatch) {
         addToCart(exactMatch);
         setSearch('');
-        setSearchResults([]);
-        setSelectedIndex(-1);
+        setServerSearchResults([]);
         setLastScanned({ found: true, name: exactMatch.name, code: q });
         toast.success(`Added: ${exactMatch.name}`, { duration: 1500 });
       } else {
-        setSearchResults(items);
+        setServerSearchResults(items);
         setSelectedIndex(-1);
       }
-    }).catch(() => setSearchResults([]));
-  }, [debouncedSearch, organizationId, barcodeMap]);
+    }).catch(() => {});
+  }, [debouncedSearch, organizationId, barcodeMap, localSearchResults]);
 
   const addToCart = (product) => {
     // Weighted items open the scale modal instead of adding directly
@@ -174,10 +189,9 @@ export default function POS() {
     setWeightEntryProduct(null);
   };
 
-  // Barcode scan handler
+  // Barcode scan handler — uses O(1) barcodeMap for instant lookup
   const handleScan = (code) => {
-    let match = products.find(p => p.upc === code || p.sku === code);
-    if (!match) match = searchResults.find(p => p.upc === code || p.sku === code);
+    const match = barcodeMap.get(code) || searchResults.find(p => p.upc === code || p.sku === code);
     if (match) {
       addToCart(match);
       setLastScanned({ found: true, name: match.name, code });
@@ -195,13 +209,13 @@ export default function POS() {
   const handleSearchChange = (value) => {
     setSearch(value);
     setSelectedIndex(-1);
+    setServerSearchResults([]); // clear stale server results on new input
     const trimmed = value.trim();
     if (trimmed.length >= 3) {
       const exactMatch = barcodeMap.get(trimmed);
       if (exactMatch) {
         addToCart(exactMatch);
         setSearch('');
-        setSearchResults([]);
         setLastScanned({ found: true, name: exactMatch.name, code: trimmed });
         toast.success(`Added: ${exactMatch.name}`, { duration: 1500 });
       }
@@ -222,7 +236,7 @@ export default function POS() {
         const product = searchResults[selectedIndex];
         addToCart(product);
         setSearch('');
-        setSearchResults([]);
+        setServerSearchResults([]);
         setSelectedIndex(-1);
         toast.success(`Added: ${product.name}`, { duration: 1500 });
       } else if (search.trim().length >= 6) {
@@ -230,7 +244,7 @@ export default function POS() {
       }
     } else if (e.key === 'Escape') {
       setSearch('');
-      setSearchResults([]);
+      setServerSearchResults([]);
       setSelectedIndex(-1);
     }
   };
@@ -549,7 +563,7 @@ export default function POS() {
                   {searchResults.map((product, idx) => (
                     <button
                       key={product.id}
-                      onMouseDown={(e) => { e.preventDefault(); addToCart(product); setSearch(''); setSearchResults([]); setSelectedIndex(-1); }}
+                      onMouseDown={(e) => { e.preventDefault(); addToCart(product); setSearch(''); setServerSearchResults([]); setSelectedIndex(-1); }}
                       className={`w-full flex items-center gap-3 px-3 py-2 border-b border-border last:border-0 text-left transition-colors ${idx === selectedIndex ? 'bg-blue-500 text-white' : 'hover:bg-muted/50'}`}
                     >
                       {product.image_url ? (
