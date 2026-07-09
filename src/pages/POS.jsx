@@ -52,9 +52,19 @@ export default function POS() {
   const cashierName = user?.full_name || user?.email || 'Cashier';
   const cashierId = user?.id || '';
 
-  const debouncedSearch = useDebounce(search, 150);
+  const debouncedSearch = useDebounce(search, 350);
   const [searchResults, setSearchResults] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  // O(1) barcode/SKU lookup — instant match on every keystroke, no array scan
+  const barcodeMap = useMemo(() => {
+    const map = new Map();
+    for (const p of products) {
+      if (p.upc) map.set(p.upc, p);
+      if (p.sku) map.set(p.sku, p);
+    }
+    return map;
+  }, [products]);
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }
@@ -66,11 +76,13 @@ export default function POS() {
     base44.entities.Promotion.filter({ is_active: true }).then(setPromotions).catch(() => {});
   }, [organizationId]);
 
-  // Server-side search via backend function — handles 20k+ catalogs
-  // Also checks for exact barcode/SKU match in the response for instant add
+  // Server-side text search — fires 350ms after typing stops.
+  // Barcode/SKU exact matches are caught instantly by handleSearchChange via barcodeMap.
+  // This effect handles text searches and products not in the local 200-item cache.
   useEffect(() => {
     const q = debouncedSearch.trim();
     if (!q || !organizationId) { setSearchResults([]); return; }
+    if (barcodeMap.has(q)) return; // already handled instantly
     base44.functions.invoke('searchProducts', {
       organization_id: organizationId,
       search: q,
@@ -79,7 +91,7 @@ export default function POS() {
       is_active_only: true,
     }).then(res => {
       const items = res.data.items || [];
-      // Instant add if exact barcode/SKU match found from server
+      // Check server results for exact barcode match (product not in local cache)
       const exactMatch = items.find(p => p.upc === q || p.sku === q);
       if (exactMatch) {
         addToCart(exactMatch);
@@ -93,7 +105,7 @@ export default function POS() {
         setSelectedIndex(-1);
       }
     }).catch(() => setSearchResults([]));
-  }, [debouncedSearch, organizationId]);
+  }, [debouncedSearch, organizationId, barcodeMap]);
 
   const addToCart = (product) => {
     // Weighted items open the scale modal instead of adding directly
@@ -178,13 +190,14 @@ export default function POS() {
 
   useBarcodeScanner({ onScan: handleScan, enabled: !showPayment });
 
-  // Instant local barcode/SKU match check on every keystroke (no debounce delay)
+  // Instant O(1) barcode/SKU match — fires on every keystroke with zero delay.
+  // Map lookup is constant-time so this never blocks the UI thread.
   const handleSearchChange = (value) => {
     setSearch(value);
     setSelectedIndex(-1);
     const trimmed = value.trim();
-    if (trimmed.length >= 4) {
-      const exactMatch = products.find(p => p.upc === trimmed || p.sku === trimmed);
+    if (trimmed.length >= 3) {
+      const exactMatch = barcodeMap.get(trimmed);
       if (exactMatch) {
         addToCart(exactMatch);
         setSearch('');
