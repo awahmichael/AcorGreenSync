@@ -49,6 +49,16 @@ export default function PricingSection() {
           </div>
         </div>
 
+        {/* Bold USP banner — per location, not per till */}
+        <div className="mb-10 rounded-2xl bg-gradient-to-r from-green-700 to-primary text-white p-8 text-center shadow-lg">
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Unlimited Tills. One Price Per Location.
+          </p>
+          <p className="mt-2 text-base sm:text-lg text-white/90 font-medium">
+            Competitors charge per till — we charge per business location. Run as many tills as you need, at no extra cost.
+          </p>
+        </div>
+
         <div className="grid md:grid-cols-3 gap-8">
           {PLANS.map((plan) => (
             <div key={plan.name} className={`relative p-8 rounded-2xl border-2 ${plan.popular ? "border-primary bg-green-50/50" : "border-border bg-white"}`}>
