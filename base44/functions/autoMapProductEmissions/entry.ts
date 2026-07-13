@@ -36,11 +36,23 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'Already mapped' });
     }
 
-    // Fetch all active DEFRA factors
-    const allFactors = await base44.asServiceRole.entities.EmissionFactor.filter({
-      source: 'DEFRA',
-      is_active: true,
-    });
+    // Fetch ALL active DEFRA factors (paginated — default limit is 50, which misses thousands)
+    const allFactors = [];
+    let factorSkip = 0;
+    const factorBatchSize = 500;
+    let hasMoreFactors = true;
+    while (hasMoreFactors) {
+      const batch = await base44.asServiceRole.entities.EmissionFactor.filter(
+        { source: 'DEFRA', is_active: true },
+        null,
+        factorBatchSize,
+        factorSkip
+      );
+      allFactors.push(...batch);
+      factorSkip += factorBatchSize;
+      if (batch.length < factorBatchSize) hasMoreFactors = false;
+      if (allFactors.length > 50000) break;
+    }
 
     const factorByCommodity = {};
     const factorByName = {};

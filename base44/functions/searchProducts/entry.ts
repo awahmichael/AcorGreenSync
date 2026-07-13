@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
       page = 1,
       page_size = 100,
       is_active_only = false,
+      bypass_cache = false,
     } = body;
 
     if (!organization_id) {
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
     // --- Fetch all current-version products for this org (equality filters only = index-backed) ---
     let orgProducts = null;
     const cached = cache.get(organization_id);
-    if (cached && (Date.now() - cached.fetched_at) < CACHE_TTL_MS) {
+    if (!bypass_cache && cached && (Date.now() - cached.fetched_at) < CACHE_TTL_MS) {
       orgProducts = cached.products;
     } else {
       orgProducts = [];

@@ -22,7 +22,7 @@ export default function EmissionAuditPanel() {
   const [pageSize, setPageSize] = useState(100);
   const debouncedSearch = useDebounce(search, 300);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (bypassCache = false) => {
     if (!organizationId) {
       setLoading(false);
       return;
@@ -36,12 +36,14 @@ export default function EmissionAuditPanel() {
           search: debouncedSearch,
           page: currentPage,
           page_size: pageSize,
+          bypass_cache: bypassCache,
         }),
         base44.functions.invoke('searchProducts', {
           organization_id: organizationId,
           filter_status: 'all',
           page: 1,
           page_size: 1,
+          bypass_cache: bypassCache,
         }),
       ]);
       setItems(unmappedRes.data.items || []);
@@ -69,13 +71,13 @@ export default function EmissionAuditPanel() {
     await Promise.allSettled(pendingOnPage.map(p => base44.entities.Product.update(p.id, { emission_mapping_status: 'Flagged' })));
     toast.success(`${pendingOnPage.length} products on this page flagged for review`);
     setFlagging(false);
-    load();
+    load(true);
   };
 
   const resolve = async (product) => {
     await base44.entities.Product.update(product.id, { emission_mapping_status: 'Flagged' });
     toast.success(`${product.name} flagged for manual review`);
-    load();
+    load(true);
   };
 
   const handleMapUnmapped = async () => {
@@ -85,14 +87,15 @@ export default function EmissionAuditPanel() {
       // 1. Fetch ALL unmapped products (paginate through searchProducts)
       const allUnmapped = [];
       let page = 1;
-      const batchSize = 500;
+      const fetchBatchSize = 500;
       let hasMorePages = true;
       while (hasMorePages) {
         const res = await base44.functions.invoke('searchProducts', {
           organization_id: organizationId,
           filter_status: 'unmapped',
           page,
-          page_size: batchSize,
+          page_size: fetchBatchSize,
+          bypass_cache: true,
         });
         allUnmapped.push(...(res.data.items || []));
         hasMorePages = res.data.has_more;
@@ -116,22 +119,35 @@ export default function EmissionAuditPanel() {
         unit: p.unit || 'unit',
       }));
 
-      toast.info(`Mapping ${products.length} unmapped product(s)… This may take a moment.`);
+      toast.info(`Mapping ${products.length} unmapped product(s) in batches… This may take a moment.`);
 
-      // 3. Call the mapping pipeline
-      const result = await base44.functions.invoke('mapProductEmissions', { products });
-      const r = result.data;
+      // 3. Process in batches of 25 to avoid backend timeouts
+      const MAP_BATCH_SIZE = 25;
+      let totalMapped = 0;
+      let totalPending = 0;
+      let totalErrors = 0;
+      let totalProcessed = 0;
 
-      const mapped = (r.mapped_upc || 0) + (r.mapped_commodity || 0) + (r.mapped_climatiq || 0) + (r.mapped_ai || 0);
-      const pending = r.pending_manual_review || 0;
+      for (let i = 0; i < products.length; i += MAP_BATCH_SIZE) {
+        const batch = products.slice(i, i + MAP_BATCH_SIZE);
+        const result = await base44.functions.invoke('mapProductEmissions', { products: batch });
+        const r = result.data;
 
-      if (mapped > 0) {
-        toast.success(`Mapped ${mapped} of ${r.total_processed} product(s). ${pending} still pending manual review.`);
-      } else {
-        toast.info(`Processed ${r.total_processed} product(s). All remain pending manual review.`);
+        totalMapped += (r.mapped_upc || 0) + (r.mapped_commodity || 0) + (r.mapped_climatiq || 0) + (r.mapped_ai || 0);
+        totalPending += r.pending_manual_review || 0;
+        totalErrors += r.errors || 0;
+        totalProcessed += r.total_processed || 0;
       }
 
-      load();
+      if (totalMapped > 0) {
+        toast.success(`Mapped ${totalMapped} of ${totalProcessed} product(s). ${totalPending} pending, ${totalErrors} errors.`);
+      } else if (totalErrors > 0) {
+        toast.error(`All ${totalErrors} product(s) failed to map. Check function logs.`);
+      } else {
+        toast.info(`Processed ${totalProcessed} product(s). All remain pending manual review.`);
+      }
+
+      load(true);
     } catch (err) {
       console.error('Map unmapped error:', err);
       toast.error(`Mapping failed: ${err.message || 'Unknown error'}`);
