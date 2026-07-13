@@ -40,6 +40,23 @@
     "total_transactions": {
       "type": "number"
     },
+    "data_hash": {
+      "type": "string",
+      "description": "SHA-256 integrity hash of all transactions, audit logs, and personnel metadata sealed in this period"
+    },
+    "hash_version": {
+      "type": "string",
+      "default": "v1",
+      "description": "Version of the hashing algorithm/logic used (allows future upgrades)"
+    },
+    "sealed_audit_log_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of AuditLog records included in the hash payload at seal time"
+    },
     "notes": {
       "type": "string"
     }
