@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
       results = results.filter(p => p.is_active !== false);
     }
 
-    if (filter_status !== 'all') {
+    if (filter_status === 'unmapped') {
+      results = results.filter(p => p.emission_mapping_status !== 'Mapped');
+    } else if (filter_status !== 'all') {
       results = results.filter(p => p.emission_mapping_status === filter_status);
     }
 
