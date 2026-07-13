@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ShieldCheck, AlertCircle, CheckCircle2, Lock, Unlock, Clock, FileText, Leaf, Users, BarChart2, Calculator } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle2, Lock, Unlock, Clock, FileText, Leaf, Users, BarChart2, Calculator, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EmissionAuditPanel from '@/components/compliance/EmissionAuditPanel';
 import SupplierDisclosurePanel from '@/components/compliance/SupplierDisclosurePanel';
@@ -8,6 +8,7 @@ import PeriodLockPanel from '@/components/compliance/PeriodLockPanel';
 import AuditLogPanel from '@/components/compliance/AuditLogPanel';
 import PendingEmissionsPanel from '@/components/compliance/PendingEmissionsPanel';
 import RestatementCalculator from '@/components/compliance/RestatementCalculator';
+import SecrReportPanel from '@/components/compliance/SecrReportPanel';
 
 const TABS = [
   { id: 'audit', label: 'Emission Audit', icon: Leaf },
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'pending', label: 'Pending Emissions', icon: Clock },
   { id: 'restatement', label: 'Restatement', icon: Calculator },
   { id: 'log', label: 'Audit Log', icon: FileText },
+  { id: 'secr', label: 'SECR Report', icon: FileDown },
 ];
 
 export default function Compliance() {
@@ -98,6 +100,7 @@ export default function Compliance() {
       {tab === 'pending' && <PendingEmissionsPanel />}
       {tab === 'restatement' && <RestatementCalculator />}
       {tab === 'log' && <AuditLogPanel />}
+      {tab === 'secr' && <SecrReportPanel />}
     </div>
   );
 }
