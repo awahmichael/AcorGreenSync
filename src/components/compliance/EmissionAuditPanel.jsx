@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { AlertCircle, CheckCircle2, Flag, RefreshCw, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Flag, RefreshCw, Search, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ export default function EmissionAuditPanel() {
   const [allTotal, setAllTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [flagging, setFlagging] = useState(false);
+  const [mapping, setMapping] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(100);
@@ -77,6 +78,68 @@ export default function EmissionAuditPanel() {
     load();
   };
 
+  const handleMapUnmapped = async () => {
+    if (!organizationId || unmappedTotal === 0) return;
+    setMapping(true);
+    try {
+      // 1. Fetch ALL unmapped products (paginate through searchProducts)
+      const allUnmapped = [];
+      let page = 1;
+      const batchSize = 500;
+      let hasMorePages = true;
+      while (hasMorePages) {
+        const res = await base44.functions.invoke('searchProducts', {
+          organization_id: organizationId,
+          filter_status: 'unmapped',
+          page,
+          page_size: batchSize,
+        });
+        allUnmapped.push(...(res.data.items || []));
+        hasMorePages = res.data.has_more;
+        page++;
+        if (allUnmapped.length > 10000) break; // safety cap
+      }
+
+      if (allUnmapped.length === 0) {
+        toast.info('No unmapped products to process.');
+        setMapping(false);
+        return;
+      }
+
+      // 2. Map to payload shape expected by mapProductEmissions
+      const products = allUnmapped.map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category || null,
+        upc: p.upc || null,
+        commodity_code: p.commodity_code || null,
+        unit: p.unit || 'unit',
+      }));
+
+      toast.info(`Mapping ${products.length} unmapped product(s)… This may take a moment.`);
+
+      // 3. Call the mapping pipeline
+      const result = await base44.functions.invoke('mapProductEmissions', { products });
+      const r = result.data;
+
+      const mapped = (r.mapped_upc || 0) + (r.mapped_commodity || 0) + (r.mapped_climatiq || 0) + (r.mapped_ai || 0);
+      const pending = r.pending_manual_review || 0;
+
+      if (mapped > 0) {
+        toast.success(`Mapped ${mapped} of ${r.total_processed} product(s). ${pending} still pending manual review.`);
+      } else {
+        toast.info(`Processed ${r.total_processed} product(s). All remain pending manual review.`);
+      }
+
+      load();
+    } catch (err) {
+      console.error('Map unmapped error:', err);
+      toast.error(`Mapping failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setMapping(false);
+    }
+  };
+
   if (noOrg) {
     return (
       <div className="space-y-5">
@@ -125,11 +188,16 @@ export default function EmissionAuditPanel() {
 
       {/* Actions */}
       {unmappedTotal > 0 && (
-        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 gap-3">
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 gap-3 flex-wrap">
           <span className="text-sm text-amber-800">{pendingOnPage.length} pending product(s) on this page — flag for review?</span>
-          <Button size="sm" variant="outline" onClick={bulkFlag} disabled={flagging || pendingOnPage.length === 0} className="border-amber-300 text-amber-700 hover:bg-amber-100">
-            {flagging ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><Flag className="w-3.5 h-3.5 mr-1" />Flag Pending on Page</>}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={bulkFlag} disabled={flagging || pendingOnPage.length === 0} className="border-amber-300 text-amber-700 hover:bg-amber-100">
+              {flagging ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <><Flag className="w-3.5 h-3.5 mr-1" />Flag Pending on Page</>}
+            </Button>
+            <Button size="sm" onClick={handleMapUnmapped} disabled={mapping} className="bg-primary hover:bg-primary/90">
+              {mapping ? <><RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />Mapping…</> : <><Zap className="w-3.5 h-3.5 mr-1" />Map Unmapped Emissions</>}
+            </Button>
+          </div>
         </div>
       )}
 
