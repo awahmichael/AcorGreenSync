@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, DollarSign, Layers, AlertTriangle, History, Activity, Calculator, Megaphone } from 'lucide-react';
+import { Building2, DollarSign, Layers, AlertTriangle, History, Activity, Calculator, Megaphone, Leaf } from 'lucide-react';
 import Marketing from '@/pages/Marketing';
 import OrganizationsPanel from '@/components/saasadmin/OrganizationsPanel';
 import RevenueOverview from '@/components/saasadmin/RevenueOverview';
@@ -9,6 +9,7 @@ import AuditTrailPanel from '@/components/saasadmin/AuditTrailPanel';
 import SystemHealthPanel from '@/components/saasadmin/SystemHealthPanel';
 import SaaSAccounts from '@/components/saasadmin/SaaSAccounts';
 import LeadsPanel from '@/components/saasadmin/LeadsPanel';
+import EmissionMappingPanel from '@/components/saasadmin/EmissionMappingPanel';
 import { Users } from 'lucide-react';
 
 const TABS = [
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'plans', label: 'Plans & Pricing', icon: Layers },
   { id: 'dunning', label: 'Dunning', icon: AlertTriangle },
   { id: 'audit', label: 'Audit Trail', icon: History },
+  { id: 'emissions', label: 'Emission Health', icon: Leaf },
   { id: 'health', label: 'System Health', icon: Activity },
 ];
 
@@ -61,6 +63,7 @@ export default function SaaSAdmin() {
       {activeTab === 'plans' && <PlansPricingPanel />}
       {activeTab === 'dunning' && <DunningPanel />}
       {activeTab === 'audit' && <AuditTrailPanel />}
+      {activeTab === 'emissions' && <EmissionMappingPanel />}
       {activeTab === 'health' && <SystemHealthPanel />}
     </div>
   );
