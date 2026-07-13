@@ -2,7 +2,7 @@
  * ACORCLOUD GREEN-SYNC: UPC-FIRST EMISSION MAPPING PIPELINE
  *
  * Called when a tenant creates or bulk-uploads products. Maps each product
- * to a DEFRA EmissionFactor using a 3-tier priority chain:
+ * to an emission factor using a 4-tier priority chain:
  *
  * Tier 1 — UPC Lookup: If the product has a UPC, check if ANY product in the
  *          platform already has that UPC mapped to an emission factor.
@@ -11,15 +11,15 @@
  * Tier 2 — Commodity Code: If the product has a commodity_code, look it up
  *          directly in the EmissionFactor table.
  *
- * Tier 3 — AI Auto-Mapping: Fall back to InvokeLLM, passing the product name +
+ * Tier 3 — Climatiq API: Query the Climatiq search endpoint for a global
+ *          emission factor match. Stores the factor with source='Climatiq'
+ *          so it's distinguishable from the legally authoritative DEFRA
+ *          mappings.
+ *
+ * Tier 4 — AI Auto-Mapping: Fall back to InvokeLLM, passing the product name +
  *          category + a compact list of DEFRA categories. The LLM returns the
  *          best-matching factor name. We then resolve that to an EmissionFactor
  *          record and store it.
- *
- * Tier 4 — Climatiq API Fallback: If all DEFRA-based tiers fail, query the
- *          Climatiq search endpoint for a global emission factor match.
- *          Stores the factor with source='Climatiq' so it's distinguishable
- *          from the legally authoritative DEFRA mappings.
  *
  * Unmatched products are left as emission_mapping_status='Pending' for the
  * tenant's manual review queue.
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'products array is required' }, { status: 400 });
     }
 
-    // Fetch all active DEFRA factors once (for Tier 2 + Tier 3 context)
+    // Fetch all active DEFRA factors once (for Tier 2 + Tier 4 context)
     const allFactors = await base44.asServiceRole.entities.EmissionFactor.filter({
       source: 'DEFRA',
       is_active: true,
@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
     const results = {
       tier1_upc: 0,
       tier2_commodity: 0,
-      tier3_ai: 0,
-      tier4_climatiq: 0,
+      tier3_climatiq: 0,
+      tier4_ai: 0,
       pending: 0,
       details: []
     };
@@ -96,7 +96,51 @@ Deno.serve(async (req) => {
         if (matchedFactor) matchedTier = 'tier2_commodity';
       }
 
-      // ── Tier 3: AI Auto-Mapping ──
+      // ── Tier 3: Climatiq API ──
+      if (!matchedFactor) {
+        const climatiqKey = Deno.env.get("CLIMATIQ_API_KEY");
+        if (climatiqKey) {
+          try {
+            const query = encodeURIComponent(product.name + (product.category ? ' ' + product.category : ''));
+            const climatiqUrl = `https://api.climatiq.io/data/v1/search?query=${query}&data_version=^21&results_per_page=1&region=GB`;
+            const climatiqRes = await fetch(climatiqUrl, {
+              headers: { Authorization: `Bearer ${climatiqKey}` }
+            });
+
+            if (climatiqRes.ok) {
+              const climatiqData = await climatiqRes.json();
+              if (climatiqData.results && climatiqData.results.length > 0) {
+                const topMatch = climatiqData.results[0];
+                // Store Climatiq factor directly on the product
+                await base44.asServiceRole.entities.Product.update(product.id, {
+                  emission_factor_climatiq: topMatch.factor,
+                  emission_factor_source: 'Climatiq',
+                  emission_mapping_status: 'Mapped',
+                  scope3_category: product.scope3_category || 'Both'
+                });
+
+                results.tier3_climatiq++;
+                results.details.push({
+                  product_id: product.id,
+                  name: product.name,
+                  tier: 'tier3_climatiq',
+                  factor: topMatch.name,
+                  kg_co2e_per_unit: topMatch.factor,
+                  climatiq_factor_id: topMatch.id,
+                  climatiq_unit: topMatch.unit
+                });
+                continue; // Skip the DEFRA apply/pending block below
+              }
+            } else {
+              console.error(`Climatiq API returned ${climatiqRes.status} for product ${product.id}`);
+            }
+          } catch (climatiqError) {
+            console.error(`Climatiq mapping failed for product ${product.id}:`, climatiqError.message);
+          }
+        }
+      }
+
+      // ── Tier 4: AI Auto-Mapping ──
       if (!matchedFactor) {
         try {
           const llmResponse = await base44.integrations.Core.InvokeLLM({
@@ -138,54 +182,10 @@ If no category is a good fit, return {"factor_name": "", "confidence": 0}.`,
               ) || null;
             }
 
-            if (matchedFactor) matchedTier = 'tier3_ai';
+            if (matchedFactor) matchedTier = 'tier4_ai';
           }
         } catch (aiError) {
           console.error(`AI mapping failed for product ${product.id}:`, aiError.message);
-        }
-      }
-
-      // ── Tier 4: Climatiq API Fallback ──
-      if (!matchedFactor) {
-        const climatiqKey = Deno.env.get("CLIMATIQ_API_KEY");
-        if (climatiqKey) {
-          try {
-            const query = encodeURIComponent(product.name + (product.category ? ' ' + product.category : ''));
-            const climatiqUrl = `https://api.climatiq.io/data/v1/search?query=${query}&data_version=^21&results_per_page=1&region=GB`;
-            const climatiqRes = await fetch(climatiqUrl, {
-              headers: { Authorization: `Bearer ${climatiqKey}` }
-            });
-
-            if (climatiqRes.ok) {
-              const climatiqData = await climatiqRes.json();
-              if (climatiqData.results && climatiqData.results.length > 0) {
-                const topMatch = climatiqData.results[0];
-                // Store Climatiq factor directly on the product
-                await base44.asServiceRole.entities.Product.update(product.id, {
-                  emission_factor_climatiq: topMatch.factor,
-                  emission_factor_source: 'Climatiq',
-                  emission_mapping_status: 'Mapped',
-                  scope3_category: product.scope3_category || 'Both'
-                });
-
-                results.tier4_climatiq++;
-                results.details.push({
-                  product_id: product.id,
-                  name: product.name,
-                  tier: 'tier4_climatiq',
-                  factor: topMatch.name,
-                  kg_co2e_per_unit: topMatch.factor,
-                  climatiq_factor_id: topMatch.id,
-                  climatiq_unit: topMatch.unit
-                });
-                continue; // Skip the DEFRA apply/pending block below
-              }
-            } else {
-              console.error(`Climatiq API returned ${climatiqRes.status} for product ${product.id}`);
-            }
-          } catch (climatiqError) {
-            console.error(`Climatiq mapping failed for product ${product.id}:`, climatiqError.message);
-          }
         }
       }
 
@@ -229,8 +229,8 @@ If no category is a good fit, return {"factor_name": "", "confidence": 0}.`,
       total_processed: products.length,
       mapped_upc: results.tier1_upc,
       mapped_commodity: results.tier2_commodity,
-      mapped_ai: results.tier3_ai,
-      mapped_climatiq: results.tier4_climatiq,
+      mapped_climatiq: results.tier3_climatiq,
+      mapped_ai: results.tier4_ai,
       pending_manual_review: results.pending,
       details: results.details
     });
