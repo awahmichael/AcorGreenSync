@@ -53,7 +53,6 @@ const navGroups = [
       { path: '/promotions', label: 'Promotions', icon: Tag, roles: ['admin', 'manager'] },
       { path: '/gift-cards', label: 'Gift Cards', icon: Gift, roles: ['admin', 'manager'] },
       { path: '/ecommerce', label: 'E-commerce Orders', icon: Globe, roles: ['admin', 'manager'] },
-      { path: '/marketing', label: 'Marketing Campaigns', icon: Megaphone, roles: ['admin', 'manager'] },
     ]
   },
   {

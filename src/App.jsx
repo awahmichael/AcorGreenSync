@@ -29,7 +29,6 @@ import PurchaseOrders from '@/pages/PurchaseOrders';
 import StockTransfers from '@/pages/StockTransfers';
 import GiftCards from '@/pages/GiftCards';
 import Loyalty from '@/pages/Loyalty';
-import Marketing from '@/pages/Marketing';
 import Ecommerce from '@/pages/Ecommerce';
 import StaffPermissions from '@/pages/StaffPermissions';
 import SpecialOrders from '@/pages/SpecialOrders';
@@ -99,7 +98,6 @@ const AuthenticatedApp = () => {
           <Route path="/stock-transfers" element={<StockTransfers />} />
           <Route path="/gift-cards" element={<GiftCards />} />
           <Route path="/loyalty" element={<Loyalty />} />
-          <Route path="/marketing" element={<Marketing />} />
           <Route path="/ecommerce" element={<Ecommerce />} />
           <Route path="/staff-permissions" element={<StaffPermissions />} />
           <Route path="/special-orders" element={<SpecialOrders />} />

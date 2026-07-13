@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Building2, DollarSign, Layers, AlertTriangle, History, Activity, Calculator } from 'lucide-react';
+import { Building2, DollarSign, Layers, AlertTriangle, History, Activity, Calculator, Megaphone } from 'lucide-react';
+import Marketing from '@/pages/Marketing';
 import OrganizationsPanel from '@/components/saasadmin/OrganizationsPanel';
 import RevenueOverview from '@/components/saasadmin/RevenueOverview';
 import PlansPricingPanel from '@/components/saasadmin/PlansPricingPanel';
@@ -13,6 +14,7 @@ import { Users } from 'lucide-react';
 const TABS = [
   { id: 'organizations', label: 'Organizations', icon: Building2 },
   { id: 'leads', label: 'Leads CRM', icon: Users },
+  { id: 'lead_gen', label: 'Lead Generation', icon: Megaphone },
   { id: 'revenue', label: 'Revenue & Billing', icon: DollarSign },
   { id: 'accounts', label: 'Accounts', icon: Calculator },
   { id: 'plans', label: 'Plans & Pricing', icon: Layers },
@@ -53,6 +55,7 @@ export default function SaaSAdmin() {
 
       {activeTab === 'organizations' && <OrganizationsPanel />}
       {activeTab === 'leads' && <LeadsPanel />}
+      {activeTab === 'lead_gen' && <Marketing />}
       {activeTab === 'revenue' && <RevenueOverview />}
       {activeTab === 'accounts' && <SaaSAccounts />}
       {activeTab === 'plans' && <PlansPricingPanel />}
