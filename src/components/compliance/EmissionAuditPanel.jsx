@@ -22,7 +22,10 @@ export default function EmissionAuditPanel() {
   const debouncedSearch = useDebounce(search, 300);
 
   const load = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [unmappedRes, allRes] = await Promise.all([
@@ -57,6 +60,7 @@ export default function EmissionAuditPanel() {
   const mappedCount = allTotal - unmappedTotal;
   const completeness = allTotal > 0 ? Math.round((mappedCount / allTotal) * 100) : 0;
   const pendingOnPage = items.filter(p => p.emission_mapping_status === 'Pending');
+  const noOrg = !organizationId;
 
   const bulkFlag = async () => {
     if (pendingOnPage.length === 0) return;
@@ -72,6 +76,21 @@ export default function EmissionAuditPanel() {
     toast.success(`${product.name} flagged for manual review`);
     load();
   };
+
+  if (noOrg) {
+    return (
+      <div className="space-y-5">
+        <div className="bg-white rounded-xl border border-border p-8 text-center space-y-2">
+          <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+          <h3 className="font-semibold text-foreground">No Tenant Organization Selected</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            You're logged in as a platform admin without a tenant organization. To view cross-tenant emission mapping,
+            use <strong>SaaS Admin → Emission Health</strong> tab.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
