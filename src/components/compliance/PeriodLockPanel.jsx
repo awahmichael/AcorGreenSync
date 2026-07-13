@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Lock, Unlock, Plus, AlertCircle, CheckCircle2, Shield, ShieldCheck, ShieldAlert, Loader2, Fingerprint } from 'lucide-react';
+import { Lock, Unlock, Plus, AlertCircle, CheckCircle2, Shield, ShieldCheck, ShieldAlert, Loader2, Fingerprint, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ export default function PeriodLockPanel() {
   const [locking, setLocking] = useState(null);
   const [verifying, setVerifying] = useState(null);
   const [verifyResults, setVerifyResults] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
   const { user } = useAuth();
 
   const load = () => {
@@ -66,6 +67,18 @@ export default function PeriodLockPanel() {
       toast.error(`Verification failed: ${err.message}`);
     } finally {
       setVerifying(null);
+    }
+  };
+
+  const shareVerification = async (period) => {
+    const url = `${window.location.origin}/integrity/verify/${period.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(period.id);
+      toast.success('Public verification link copied to clipboard', { duration: 3000 });
+      setTimeout(() => setCopiedId(null), 3000);
+    } catch {
+      toast.error('Could not copy — manually copy: ' + url);
     }
   };
 
@@ -171,7 +184,11 @@ export default function PeriodLockPanel() {
                         <>
                           <Button size="sm" variant="outline" onClick={() => verifyPeriod(p)} disabled={verifying === p.id} className="text-blue-700 border-blue-300 hover:bg-blue-50">
                             {verifying === p.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 mr-1" />}
-                            {verifying === p.id ? 'Verifying...' : 'Verify Integrity'}
+                            {verifying === p.id ? 'Verifying...' : 'Verify'}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => shareVerification(p)} className="text-green-700 border-green-300 hover:bg-green-50">
+                            {copiedId === p.id ? <Check className="w-3.5 h-3.5 mr-1" /> : <Share2 className="w-3.5 h-3.5 mr-1" />}
+                            {copiedId === p.id ? 'Copied!' : 'Share Link'}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => unlock(p)} className="text-muted-foreground hover:text-foreground">
                             <Unlock className="w-3.5 h-3.5 mr-1" />Unlock

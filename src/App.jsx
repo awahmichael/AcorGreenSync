@@ -54,6 +54,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import HmrcCallback from '@/pages/HmrcCallback';
+import VerifyIntegrity from '@/pages/VerifyIntegrity';
 import { Navigate } from 'react-router-dom';
 
 const AuthenticatedApp = () => {
@@ -82,6 +83,7 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/hmrc/callback" element={<HmrcCallback />} />
+      <Route path="/integrity/verify/:period_id" element={<VerifyIntegrity />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
@@ -126,7 +128,20 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
-  const isMarketingDomain = window.location.hostname.includes('acorgreensync');
+  const hostname = window.location.hostname;
+  const isAuditDomain = hostname.startsWith('audit.');
+  const isMarketingDomain = hostname.includes('acorgreensync') && !isAuditDomain;
+
+  if (isAuditDomain) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/verify/:period_id" element={<VerifyIntegrity />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    );
+  }
 
   if (isMarketingDomain) {
     return (
