@@ -28,9 +28,8 @@ const SKIP_SHEETS = [
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
+    const isAuthed = await base44.auth.isAuthenticated();
+    if (!isAuthed) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { file_url, year, dataset_version } = body;
@@ -38,6 +37,8 @@ Deno.serve(async (req) => {
     if (!file_url) {
       return Response.json({ error: 'file_url is required' }, { status: 400 });
     }
+
+
 
     const ingestionYear = year || 2025;
     const versionTag = dataset_version || `${ingestionYear}_v1`;

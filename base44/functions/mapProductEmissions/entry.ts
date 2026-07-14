@@ -135,28 +135,45 @@ Deno.serve(async (req) => {
         // ── Tier 4: AI Auto-Mapping ──
         if (!matchedFactor) {
           try {
+            // Build a compact list of all factor names grouped by category
+            // so the AI can pick the EXACT name for reliable lookup
+            const factorsByCategory = {};
+            for (const f of allFactors) {
+              const cat = f.category || 'Other';
+              if (!factorsByCategory[cat]) factorsByCategory[cat] = [];
+              factorsByCategory[cat].push(`${f.name} (${f.kg_co2e_per_unit} kg CO2e/${f.unit})`);
+            }
+            const factorList = Object.entries(factorsByCategory)
+              .map(([cat, names]) => `${cat}:\n  - ${names.join('\n  - ')}`)
+              .join('\n');
+
             const llmResponse = await base44.integrations.Core.InvokeLLM({
               prompt: `You are a professional retail sustainability auditor.
-Map the following product to the most accurate DEFRA emission factor category.
+Map the following retail product to the most accurate DEFRA emission factor from the list below.
 
 Product Name: "${product.name}"
 Product Category: "${product.category || 'Not specified'}"
 Unit: "${product.unit || 'unit'}"
 
-Available DEFRA Categories: ${defraCategoryList.join(', ')}
+Available DEFRA Emission Factors:
+${factorList}
 
-Return ONLY a JSON object with:
-- "factor_name": the exact DEFRA factor name that best matches this product
-- "confidence": a number from 0 to 100 indicating your confidence
-- "scope3_category": the GHG Protocol Scope 3 category if applicable
+Instructions:
+- Pick the factor whose name best represents this product's material/food type.
+- Return the EXACT factor name (the text before the parenthesis) from the list above.
+- For food/drink products, match to the closest food category (e.g. "Fresh fruit" for fruit juice).
+- For household/HBA products, match to "Plastics: average plastics" or the most relevant material.
 
-If no category is a good fit, return {"factor_name": "", "confidence": 0}.`,
+Return ONLY a JSON object:
+- "factor_name": the EXACT factor name from the list above
+- "confidence": a number from 0 to 100
+
+If nothing fits, return {"factor_name": "", "confidence": 0}.`,
               response_json_schema: {
                 type: "object",
                 properties: {
                   factor_name: { type: "string" },
-                  confidence: { type: "number" },
-                  scope3_category: { type: "string" }
+                  confidence: { type: "number" }
                 }
               },
               model: "gemini_3_flash"
@@ -167,8 +184,9 @@ If no category is a good fit, return {"factor_name": "", "confidence": 0}.`,
               matchedFactor = factorByName[lookupKey] || null;
 
               if (!matchedFactor) {
+                // Fuzzy: find factor whose name contains the AI response or vice versa
                 matchedFactor = allFactors.find(f =>
-                  f.name && f.name.toLowerCase().includes(lookupKey)
+                  f.name && (f.name.toLowerCase().includes(lookupKey) || lookupKey.includes(f.name.toLowerCase()))
                 ) || null;
               }
 
