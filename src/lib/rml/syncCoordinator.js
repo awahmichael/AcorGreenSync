@@ -91,6 +91,7 @@ export class SyncCoordinator {
   _marshalForCloud(tx) {
     return {
       transaction_ref: tx.transaction_ref,
+      organization_id: tx.organization_id || null,
       store_id: tx.location_id || tx.store_id,
       store_name: tx.store_name,
       cashier_id: tx.cashier_id,
@@ -112,7 +113,7 @@ export class SyncCoordinator {
       upstream_kg_co2e: tx.upstream_kg_co2e,
       downstream_kg_co2e: tx.downstream_kg_co2e,
       sync_status: SyncStatus.SYNCED,
-      recorded_offline: tx.recorded_offline || true,
+      recorded_offline: tx.recorded_offline !== undefined ? tx.recorded_offline : true,
       transaction_date: tx.transaction_date,
       payment_method: tx.payment_method,
       notes: tx.notes,

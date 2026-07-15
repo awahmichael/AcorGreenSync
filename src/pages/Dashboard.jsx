@@ -36,7 +36,7 @@ export default function Dashboard() {
   // Trigger sync when dashboard loads and we're online with a queue
   useEffect(() => {
     if (isOnline && queue.length > 0) syncQueue();
-  }, [isOnline]);
+  }, [isOnline, queue.length, syncQueue]);
 
   useEffect(() => {
     if (!organizationId) { setLoading(false); return; }

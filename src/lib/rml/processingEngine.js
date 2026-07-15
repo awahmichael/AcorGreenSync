@@ -133,12 +133,14 @@ export class ProcessingEngine {
     }
 
     // Construct the parent transaction ledger block
+    const organizationId = options.organization_id || '';
     const transactionRef = options.transaction_ref || `TXN-${Date.now()}`;
     const discountAmount = options.discount_amount || 0;
     const finalTotal = Math.max(0, totalAmount - discountAmount);
     const executedTransaction = createTransaction({
       transaction_id: txId,
       transaction_ref: transactionRef,
+      organization_id: organizationId,
       location_id: locationId,
       store_name: options.store_name || '',
       cashier_id: options.cashier_id || '',

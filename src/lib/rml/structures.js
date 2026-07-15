@@ -67,6 +67,7 @@ export function createTransaction(data) {
   return {
     transaction_id: data.transaction_id || generateUUID(),
     transaction_ref: data.transaction_ref || `TXN-${Date.now()}`,
+    organization_id: data.organization_id || '',
     location_id: data.location_id || data.store_id || '',
     store_name: data.store_name || '',
     cashier_id: data.cashier_id || '',
