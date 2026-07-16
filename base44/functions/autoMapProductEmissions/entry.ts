@@ -124,8 +124,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Tier 4: AI Auto-Mapping ──
-    if (!matchedFactor) {
+    // ── Tier 4: AI Auto-Mapping (disabled to save integration credits) ──
+    if (!matchedFactor && Deno.env.get("ENABLE_AI_MAPPING") === 'true') {
       try {
         const llmResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
           prompt: `You are a professional retail sustainability auditor.

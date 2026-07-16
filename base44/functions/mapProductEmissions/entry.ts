@@ -132,8 +132,8 @@ Deno.serve(async (req) => {
           }
         }
 
-        // ── Tier 4: AI Auto-Mapping ──
-        if (!matchedFactor) {
+        // ── Tier 4: AI Auto-Mapping (disabled to save integration credits) ──
+        if (!matchedFactor && Deno.env.get("ENABLE_AI_MAPPING") === 'true') {
           try {
             // Build a compact list of all factor names grouped by category
             // so the AI can pick the EXACT name for reliable lookup
