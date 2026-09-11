@@ -9,14 +9,19 @@ export default function QuickAccessPanel({ products, onAdd, loading }) {
     [products]
   );
 
+  // When no favourites are pinned, show all active products so the grid isn't empty.
+  const displayProducts = favourites.length > 0
+    ? favourites
+    : products.filter(p => p.is_active && (p.stock_quantity || 0) > 0);
+
   const categories = useMemo(() => {
-    const cats = [...new Set(favourites.map(p => p.category).filter(Boolean))].sort();
+    const cats = [...new Set(displayProducts.map(p => p.category).filter(Boolean))].sort();
     return cats;
-  }, [favourites]);
+  }, [displayProducts]);
 
   const filtered = activeCategory
-    ? favourites.filter(p => p.category === activeCategory)
-    : favourites;
+    ? displayProducts.filter(p => p.category === activeCategory)
+    : displayProducts;
 
   if (loading) {
     return (
@@ -28,10 +33,10 @@ export default function QuickAccessPanel({ products, onAdd, loading }) {
     );
   }
 
-  if (favourites.length === 0) {
+  if (displayProducts.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
-        No quick access items yet. Mark products as favourites to pin them here.
+        No products available. Add products or mark favourites to pin them here.
       </div>
     );
   }

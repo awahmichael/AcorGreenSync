@@ -14,18 +14,11 @@ export const OrgProvider = ({ children }) => {
   const provisioningRef = useRef(false);
 
   const loadOrgs = useCallback(async () => {
-    // Super admins manage tenants from the SaaS Admin panel — don't auto-select a tenant org
-    if (isSuperAdmin) {
-      setOrganizations([]);
-      setCurrentOrg(null);
-      setLoading(false);
-      return;
-    }
     try {
       const orgs = await base44.entities.Organization.list('-created_date', 500);
 
-      // Auto-provision a default org if user has none
-      if (orgs.length === 0 && !provisioningRef.current) {
+      // Auto-provision a default org if a regular user has none (super admins manage orgs via SaaS Admin)
+      if (!isSuperAdmin && orgs.length === 0 && !provisioningRef.current) {
         provisioningRef.current = true;
         try {
           const response = await base44.functions.invoke('autoProvisionOrganization', {});
