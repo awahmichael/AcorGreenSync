@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Plus, Search, Leaf, AlertCircle, CheckCircle2, Edit2, Trash2, Upload, Download, Package, Star, Eraser } from 'lucide-react';
@@ -36,9 +36,12 @@ export default function Products() {
   const [currentPage, setCurrentPage] = useState(1);
   const { organizationId } = useOrganization();
   const debouncedSearch = useDebounce(search, 300);
+  // Guards against stale responses overwriting fresh state on rapid keystrokes
+  const reqIdRef = useRef(0);
 
-  const loadAll = useCallback(async () => {
-    if (!organizationId) return;
+  const loadAll = useCallback(async (bypassCache = false) => {
+    if (!organizationId) { setLoading(false); setItems([]); setHasMore(false); return; }
+    const myId = ++reqIdRef.current;
     setLoading(true);
     try {
       const res = await base44.functions.invoke('searchProducts', {
@@ -47,17 +50,21 @@ export default function Products() {
         filter_status: filter,
         page: currentPage,
         page_size: pageSize,
+        bypass_cache: bypassCache,
       });
-      setItems(res.data.items);
+      // Ignore stale responses from a newer in-flight request
+      if (reqIdRef.current !== myId) return;
+      setItems(res.data.items || []);
       setHasMore(res.data.has_more);
     } catch (err) {
+      if (reqIdRef.current !== myId) return;
       toast.error('Failed to load products');
     } finally {
-      setLoading(false);
+      if (reqIdRef.current === myId) setLoading(false);
     }
   }, [organizationId, debouncedSearch, filter, currentPage, pageSize]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { loadAll(false); }, [loadAll]);
 
   const products = items;
   const totalItems = items.length;
@@ -84,7 +91,7 @@ export default function Products() {
   const handleDelete = async (id) => {
     await base44.entities.Product.delete(id);
     toast.success('Product removed');
-    loadAll();
+    loadAll(true);
   };
 
   const openEdit = (product) => {
@@ -303,7 +310,9 @@ export default function Products() {
             </tbody>
           </table>
           {!loading && products.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-sm">No products found.</div>
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              {organizationId ? 'No products found.' : 'Select an organization to manage products.'}
+            </div>
           )}
           </div>
           <Pagination
@@ -321,7 +330,7 @@ export default function Products() {
         <ProductModal
           product={editProduct}
           onClose={() => setShowModal(false)}
-          onSaved={() => { setShowModal(false); loadAll(); }}
+          onSaved={() => { setShowModal(false); loadAll(true); }}
         />
       )}
 
@@ -335,7 +344,7 @@ export default function Products() {
       {showBulkUpload && (
         <BulkUploadModal
           onClose={() => setShowBulkUpload(false)}
-          onSynced={() => loadAll()}
+          onSynced={() => loadAll(true)}
         />
       )}
 
@@ -343,7 +352,7 @@ export default function Products() {
         <ClearCatalogModal
           organizationId={organizationId}
           onClose={() => setShowClearCatalog(false)}
-          onCleared={() => loadAll()}
+          onCleared={() => loadAll(true)}
         />
       )}
     </div>
